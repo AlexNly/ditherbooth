@@ -2,3 +2,6 @@ fastapi
 uvicorn
 pillow
 black
+pytest
+httpx
+python-multipart
