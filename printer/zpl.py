@@ -1,0 +1,27 @@
+import math
+from PIL import Image
+
+
+def img_to_zpl_gf(img: Image.Image, x: int = 20, y: int = 20) -> bytes:
+    if img.mode != "1":
+        raise ValueError("Image must be 1-bit")
+    width, height = img.size
+    row_bytes = math.ceil(width / 8)
+    pixels = img.load()
+    data = bytearray()
+    for row in range(height):
+        byte = 0
+        bit_count = 0
+        for col in range(width):
+            if pixels[col, row] == 0:
+                byte |= 1 << (7 - (bit_count % 8))
+            bit_count += 1
+            if bit_count % 8 == 0:
+                data.append(byte)
+                byte = 0
+        if bit_count % 8 != 0:
+            data.append(byte)
+    total_bytes = len(data)
+    hexdata = data.hex().upper()
+    header = f"^XA^FO{x},{y}^GFA,{total_bytes},{total_bytes},{row_bytes},".encode()
+    return header + hexdata.encode() + b"^FS^XZ"
