@@ -111,8 +111,8 @@ Result files are written to `notebooks/out/`.
 Original (left) and final 1‑bit (right):
 
 <p>
-  <img src="notebooks/20250902_0027_PartyinthePark_example.png" alt="Original example" width="280"/>
-  <img src="notebooks/out/04_final_1bit_direct.png" alt="Processed 1-bit (to_1bit)" width="280"/>
+  <img src="static/examples/original.png" alt="Original example" width="280"/>
+  <img src="static/examples/final_1bit_463.png" alt="Processed 1-bit (to_1bit)" width="280"/>
 </p>
 
 Optional intermediate views used for illustration (not sent to the printer):
