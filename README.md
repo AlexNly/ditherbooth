@@ -71,6 +71,10 @@ curl -F "file=@path/to/image.jpg" \
 
 A JSON response of `{ "status": "ok" }` indicates the job was submitted.
 
+## Image processing notebook
+
+An example Jupyter notebook demonstrating the conversion of the sample image to a printable 1-bit bitmap is available at `notebooks/image_processing.ipynb`.
+
 ## Formatting and linting
 
 Format the code with:
