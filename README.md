@@ -71,9 +71,56 @@ curl -F "file=@path/to/image.jpg" \
 
 A JSON response of `{ "status": "ok" }` indicates the job was submitted.
 
-## Image processing notebook
+## Image processing script
 
-An example Jupyter notebook demonstrating the conversion of the sample image to a printable 1-bit bitmap is available at `notebooks/image_processing.ipynb`.
+- `notebooks/image_processing.py` (uses `# %%` cells)
+
+Run end-to-end (auto-picks an image in `notebooks/` if available):
+
+```bash
+python notebooks/image_processing.py
+```
+
+Examples:
+
+```bash
+# Use a specific image in notebooks/
+python notebooks/image_processing.py -i notebooks/your_image.png
+
+# Change printer width (dots)
+python notebooks/image_processing.py -i notebooks/your_image.png -w 463
+
+# Choose a custom output directory
+python notebooks/image_processing.py -i notebooks/your_image.png --out notebooks/out_custom
+```
+
+You can also open the script in VS Code/Jupyter and run the `# %%` cells interactively.
+
+## Examples
+
+The images below are produced with the exact pipeline used for printing: the helper `imaging.process.to_1bit` (same code path FastAPI calls before encoding to EPL/ZPL). Width is set to `463` dots (media `continuous58`).
+
+Generate the outputs locally:
+
+```bash
+python notebooks/image_processing.py -i notebooks/20250902_0027_PartyinthePark_example.png -w 463
+```
+
+Result files are written to `notebooks/out/`.
+
+Original (left) and final 1‑bit (right):
+
+<p>
+  <img src="notebooks/20250902_0027_PartyinthePark_example.png" alt="Original example" width="280"/>
+  <img src="notebooks/out/04_final_1bit_direct.png" alt="Processed 1-bit (to_1bit)" width="280"/>
+</p>
+
+Optional intermediate views used for illustration (not sent to the printer):
+
+<p>
+  <img src="notebooks/out/01_gray.png" alt="Grayscale" width="280"/>
+  <img src="notebooks/out/02_resized.png" alt="Resized to printer width" width="280"/>
+</p>
 
 ## Formatting and linting
 
