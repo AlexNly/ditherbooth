@@ -19,7 +19,10 @@ def test_print_endpoint(monkeypatch):
 
     def fake_spool_raw(printer_name, payload):
         called.append((printer_name, payload))
+    async def fake_run_in_threadpool(func, *args, **kwargs):
+        return func(*args, **kwargs)
 
+    monkeypatch.setattr("app.run_in_threadpool", fake_run_in_threadpool)
     monkeypatch.setattr("app.spool_raw", fake_spool_raw)
 
     from PIL import Image
