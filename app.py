@@ -94,6 +94,9 @@ async def print_image(
         printer_name = cfg.get("printer_name") or PRINTER_NAME
         await run_in_threadpool(spool_raw, printer_name, payload)
         return {"status": "ok"}
+    except HTTPException as exc:
+        # Propagate intended HTTP errors (e.g., 413 size limit)
+        raise exc
     except UnidentifiedImageError as exc:
         logger.exception("Failed to process image")
         raise HTTPException(status_code=400, detail="Invalid image file") from exc
@@ -278,6 +281,8 @@ async def preview_image(
         img.save(buf, format="PNG")
         data = buf.getvalue()
         return Response(content=data, media_type="image/png")
+    except HTTPException as exc:
+        raise exc
     except UnidentifiedImageError as exc:
         logger.exception("Failed to process image for preview")
         raise HTTPException(status_code=400, detail="Invalid image file") from exc
