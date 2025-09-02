@@ -14,8 +14,12 @@ def test_index_returns_html():
     assert "text/html" in response.headers.get("content-type", "")
 
 
-def test_print_endpoint(monkeypatch):
-    client = TestClient(app)
+def test_print_endpoint(tmp_path, monkeypatch):
+    # Ensure test_mode is not enabled via any existing config
+    monkeypatch.setenv("DITHERBOOTH_CONFIG_PATH", str(tmp_path / "cfg.json"))
+    import app as app_module
+    importlib.reload(app_module)
+    client = TestClient(app_module.app)
     called = []
 
     def fake_spool_raw(printer_name, payload):
@@ -23,8 +27,8 @@ def test_print_endpoint(monkeypatch):
     async def fake_run_in_threadpool(func, *args, **kwargs):
         return func(*args, **kwargs)
 
-    monkeypatch.setattr("app.run_in_threadpool", fake_run_in_threadpool)
-    monkeypatch.setattr("app.spool_raw", fake_spool_raw)
+    monkeypatch.setattr(app_module, "run_in_threadpool", fake_run_in_threadpool)
+    monkeypatch.setattr(app_module, "spool_raw", fake_spool_raw)
 
     from PIL import Image
     import io
