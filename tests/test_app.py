@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 from pathlib import Path
 import sys
+import importlib
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from app import app
@@ -42,3 +43,10 @@ def test_print_endpoint(monkeypatch):
     printer_name, payload = called[0]
     assert printer_name == "zebra2844"
     assert isinstance(payload, (bytes, bytearray))
+
+
+def test_printer_name_from_env(monkeypatch):
+    monkeypatch.setenv("DITHERBOOTH_PRINTER", "myprinter")
+    import app as app_module
+    importlib.reload(app_module)
+    assert app_module.PRINTER_NAME == "myprinter"
