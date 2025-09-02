@@ -1,8 +1,11 @@
 # Ditherbooth
 
 [![tests](https://github.com/AlexNly/ditherbooth/actions/workflows/tests.yml/badge.svg)](https://github.com/AlexNly/ditherbooth/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/AlexNly/ditherbooth/branch/main/graph/badge.svg)](https://codecov.io/gh/AlexNly/ditherbooth)
 [![python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
 [![code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
 Ditherbooth is a small FastAPI service and single-page app for printing photos to a Zebra LP2844 label printer.  Images are uploaded through the web UI, converted to 1‑bit dithered bitmaps with Pillow, encoded as EPL2 or ZPL graphics commands, and spooled to CUPS as raw jobs.
 
@@ -59,6 +62,41 @@ make dev
 
 Visit [http://localhost:8000](http://localhost:8000) and upload or capture a photo.  Choose media width and printer language and press **Print** to send the job to the printer.
 
+### Access on your network (phone/tablet)
+
+Run the dev server bound to your LAN IP:
+
+```bash
+make dev HOST=0.0.0.0 PORT=8000
+```
+
+Find your IP (examples):
+
+- macOS: `ipconfig getifaddr en0`
+- Linux: `hostname -I`
+
+Then open `http://<your-ip>:8000` on your phone (same Wi‑Fi). Use the gear icon (Dev Settings) to enable Test Mode so no printer is required.
+
+### Developer settings and test mode
+
+The app exposes a small password-protected settings API to make the frontend configurable without exposing options to end users. These settings are persisted to a JSON file (`ditherbooth_config.json` by default) and are used both by the UI and the print endpoint.
+
+- `DITHERBOOTH_DEV_PASSWORD`: Password required for the settings API (default: `dev` for local/testing). Set this in production.
+- `DITHERBOOTH_CONFIG_PATH`: Optional path to the settings JSON file. Useful in tests or deployments.
+
+Endpoints:
+
+- `GET /api/public-config`: Public, returns defaults and whether to lock controls in the UI.
+- `GET /api/dev/settings`: Requires header `X-Dev-Password`. Returns full config.
+- `PUT /api/dev/settings`: Requires header `X-Dev-Password`. Accepts JSON fields:
+  - `test_mode` (bool) — if true, the `/print` endpoint will process the image but skip spooling to the printer and return `{status:"ok", mode:"test"}`.
+  - `default_media` (string: one of `continuous58`, `continuous80`, `label100x150`)
+  - `default_lang` (string: `EPL` or `ZPL`)
+  - `lock_controls` (bool) — hides media/language selectors in the UI for kiosk usage.
+  - `printer_name` (string, optional) — override the printer queue name used by the backend (otherwise falls back to `DITHERBOOTH_PRINTER` env, then `zebra2844`).
+
+The redesigned frontend includes a settings modal (gear icon) where an admin can enter the dev password to view and update the settings. Regular users won’t see or need to touch configuration; if `lock_controls` is enabled, the media/language selectors are hidden and the UI presents a simple “choose image → print” flow.
+
 ## API test with cURL
 
 You can send an image directly to the `/print` endpoint without the UI:
@@ -71,6 +109,18 @@ curl -F "file=@path/to/image.jpg" \
 ```
 
 A JSON response of `{ "status": "ok" }` indicates the job was submitted.
+
+If test mode is enabled via settings, the response will include `{ "status": "ok", "mode": "test", ... }` and no job is sent to the printer.
+
+## Media presets
+
+Available media widths (dots):
+
+- `continuous58` → 463
+- `continuous80` → 640 (default)
+- `label100x150` → 799
+
+You can change the default in the Dev Settings modal, or via the API.
 
 ## Image processing script
 
@@ -142,3 +192,14 @@ python -m py_compile app.py imaging/process.py printer/cups.py printer/epl.py pr
 ## Notes
 
 Camera capture in the browser requires HTTPS on non‑localhost hosts.  When deploying on a LAN, run the service behind a self‑signed certificate or a local CA such as `mkcert`.
+
+### Code coverage (Codecov)
+
+This repository publishes test coverage to Codecov via GitHub Actions. The workflow runs `pytest --cov=. --cov-report=xml` and uploads `coverage.xml`.
+
+- Public repo: no token required.
+- Private repo: set `CODECOV_TOKEN` in repository secrets if needed.
+
+## License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
