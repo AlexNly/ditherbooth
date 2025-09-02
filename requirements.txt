@@ -5,3 +5,4 @@ black
 pytest
 httpx
 python-multipart
+pytest-cov
