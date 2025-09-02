@@ -2,21 +2,125 @@
 <html>
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Ditherbooth</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="preload" href="/static/examples/original.png" as="image">
+    <link rel="preload" href="/static/examples/final_1bit_463.png" as="image">
+    <link rel="icon" href="data:,">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#111">
+    <meta name="description" content="Simple photo-to-label printer UI">
 </head>
 <body>
-    <h1>Ditherbooth</h1>
-    <input type="file" id="file" accept="image/*" />
-    <select id="media">
-        <option value="continuous58">58mm continuous</option>
-        <option value="continuous80">80mm continuous</option>
-        <option value="label100x150">100x150 label</option>
-    </select>
-    <select id="lang">
-        <option value="EPL">EPL</option>
-        <option value="ZPL">ZPL</option>
-    </select>
-    <button id="printBtn">Print</button>
-    <script src="app.js"></script>
+    <header class="app-header">
+        <h1>Ditherbooth</h1>
+        <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">⚙️</button>
+    </header>
+
+    <main class="container layout">
+        <section id="uploaderSection" class="uploader card">
+            <div id="dropArea" class="drop-area" tabindex="0" aria-label="Drop image here or click to select">
+                <div id="preview" class="preview">
+                    <span class="placeholder">Drop an image or click to choose</span>
+                </div>
+                <input type="file" id="file" accept="image/*" hidden>
+            </div>
+            <div class="actions">
+                <button id="chooseBtn" class="secondary">Choose Image</button>
+                <button id="sampleBtn" class="secondary">Use Sample Image</button>
+                <button id="printBtn" class="primary">Print</button>
+            </div>
+            <div id="status" class="status" role="status" aria-live="polite"></div>
+        </section>
+
+        <aside class="card">
+            <div id="controls" class="controls">
+                <label>
+                    Media
+                    <select id="media">
+                        <option value="continuous58">58mm continuous</option>
+                        <option value="continuous80">80mm continuous</option>
+                        <option value="label100x150">100x150 label</option>
+                    </select>
+                </label>
+                <label>
+                    Language
+                    <select id="lang">
+                        <option value="EPL">EPL</option>
+                        <option value="ZPL">ZPL</option>
+                    </select>
+                </label>
+            </div>
+            <div class="card">
+                <h3>Output Preview</h3>
+                <div id="outputFrame" class="output-frame roll">
+                    <canvas id="outputCanvas"></canvas>
+                </div>
+                <div class="actions" id="outputActions"></div>
+                <div class="status" id="outputMsg"></div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="settingsTitle">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2 id="settingsTitle">Developer Settings</h2>
+                <button id="closeModal" class="icon-btn" aria-label="Close">✖️</button>
+            </header>
+            <section class="modal-body">
+                <div class="field">
+                    <label>Dev Password
+                        <input type="password" id="devPassword" placeholder="Enter password" autocomplete="current-password">
+                    </label>
+                    <button id="connectSettings" class="secondary">Connect</button>
+                </div>
+                <div id="settingsForm" class="settings-form" hidden>
+                    <div class="field">
+                        <label><input type="checkbox" id="testMode"> Test mode (don’t print)</label>
+                    </div>
+                    <div class="field">
+                        <label>Test mode delay (ms)
+                            <input type="number" id="testDelay" min="0" step="100" placeholder="e.g., 1500">
+                        </label>
+                    </div>
+                    <div class="field">
+                        <label><input type="checkbox" id="lockControls"> Lock user controls</label>
+                    </div>
+                    <div class="field">
+                        <label>Default media
+                            <select id="defMedia">
+                                <option value="continuous58">58mm continuous</option>
+                                <option value="continuous80">80mm continuous</option>
+                                <option value="label100x150">100x150 label</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="field">
+                        <label>Default language
+                            <select id="defLang">
+                                <option value="EPL">EPL</option>
+                                <option value="ZPL">ZPL</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="field">
+                        <label>Printer name (optional override)
+                            <input type="text" id="printerName" placeholder="e.g., zebra2844">
+                        </label>
+                    </div>
+                    <div class="actions end">
+                        <button id="saveSettings" class="primary">Save</button>
+                    </div>
+                </div>
+                <div id="settingsMsg" class="status"></div>
+            </section>
+        </div>
+    </div>
+
+    <script src="/static/app.js" defer></script>
+    <noscript>This app requires JavaScript.</noscript>
 </body>
 </html>
