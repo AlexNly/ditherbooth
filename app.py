@@ -4,6 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.concurrency import run_in_threadpool
 
 from imaging.process import to_1bit
 from printer.cups import spool_raw
@@ -53,5 +54,5 @@ async def print_image(
         payload = img_to_epl_gw(img)
     else:
         payload = img_to_zpl_gf(img)
-    spool_raw(PRINTER_NAME, payload)
+    await run_in_threadpool(spool_raw, PRINTER_NAME, payload)
     return {"status": "ok"}
