@@ -33,3 +33,8 @@ notebooks/out/
 # OS / logs
 .DS_Store
 *.log
+
+# Runtime PIDs / local configs
+.server.pid
+*.pid
+ditherbooth_config.json
