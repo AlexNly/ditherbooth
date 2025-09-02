@@ -57,7 +57,9 @@ async def print_image(
     try:
         img_bytes = await file.read()
         width = MEDIA_WIDTHS[media]
-        img = to_1bit(img_bytes, width)
+        # Conversion to 1-bit is CPU-intensive, so run it in a thread pool to
+        # avoid blocking the event loop.
+        img = await run_in_threadpool(to_1bit, img_bytes, width)
         if lang == Lang.EPL:
             payload = img_to_epl_gw(img)
         else:
