@@ -1,10 +1,13 @@
 from enum import Enum
 from pathlib import Path
+import logging
+import subprocess
 
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.concurrency import run_in_threadpool
+from PIL import UnidentifiedImageError
 
 from imaging.process import to_1bit
 from printer.cups import spool_raw
@@ -31,6 +34,9 @@ MEDIA_WIDTHS = {
 
 PRINTER_NAME = "zebra2844"
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = FastAPI()
 static_dir = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
@@ -47,12 +53,22 @@ async def print_image(
     media: Media = Form(...),
     lang: Lang = Form(...),
 ) -> dict:
-    img_bytes = await file.read()
-    width = MEDIA_WIDTHS[media]
-    img = to_1bit(img_bytes, width)
-    if lang == Lang.EPL:
-        payload = img_to_epl_gw(img)
-    else:
-        payload = img_to_zpl_gf(img)
-    await run_in_threadpool(spool_raw, PRINTER_NAME, payload)
-    return {"status": "ok"}
+    try:
+        img_bytes = await file.read()
+        width = MEDIA_WIDTHS[media]
+        img = to_1bit(img_bytes, width)
+        if lang == Lang.EPL:
+            payload = img_to_epl_gw(img)
+        else:
+            payload = img_to_zpl_gf(img)
+        await run_in_threadpool(spool_raw, PRINTER_NAME, payload)
+        return {"status": "ok"}
+    except UnidentifiedImageError as exc:
+        logger.exception("Failed to process image")
+        raise HTTPException(status_code=400, detail="Invalid image file") from exc
+    except subprocess.CalledProcessError as exc:
+        logger.exception("Printing command failed")
+        raise HTTPException(status_code=502, detail="Printer error") from exc
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Unexpected server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
