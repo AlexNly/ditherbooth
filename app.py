@@ -1,6 +1,7 @@
 from enum import Enum
 from pathlib import Path
 import logging
+import os
 import subprocess
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
@@ -32,7 +33,7 @@ MEDIA_WIDTHS = {
     Media.label100x150: 799,
 }
 
-PRINTER_NAME = "zebra2844"
+PRINTER_NAME = os.getenv("DITHERBOOTH_PRINTER", "zebra2844")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

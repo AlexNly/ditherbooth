@@ -11,6 +11,7 @@ Ditherbooth is a small FastAPI service and single-page app for printing photos t
 * Python 3.9+
 * [CUPS](https://www.cups.org/) with a **raw** queue named `zebra2844`
 * Zebra LP2844 or LP2844‑Z printer connected via USB
+* `DITHERBOOTH_PRINTER` environment variable (optional) to override the CUPS queue name; defaults to `zebra2844`
 
 ### Create a raw queue
 Plug the printer in and register it with CUPS.  Both Raspberry Pi OS and macOS ship with CUPS.
