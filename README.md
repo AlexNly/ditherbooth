@@ -7,30 +7,65 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
-Ditherbooth is a small FastAPI service and single-page app for printing photos to a Zebra LP2844 label printer.  Images are uploaded through the web UI, converted to 1‑bit dithered bitmaps with Pillow, encoded as EPL2 or ZPL graphics commands, and spooled to CUPS as raw jobs.
+Turn photos into crisp 1‑bit dithered prints on a Zebra label printer.
 
-## Prerequisites
+<p align="center">
+  <img src="static/examples/original.png" alt="Original example" width="280"/>
+  <img src="static/examples/final_1bit_463.png" alt="Processed 1-bit" width="280"/>
+</p>
+
+Original (left) and final 1‑bit dithered image (right). See [Image processing script](#image-processing-script) to reproduce the example locally.
+
+Ditherbooth is a small FastAPI service and single-page app that turns uploaded photos into 1‑bit dithered bitmaps and prints them on a Zebra LP2844 label printer.
+
+## Table of Contents
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Developer Settings and Test Mode](#developer-settings-and-test-mode)
+- [API Test with cURL](#api-test-with-curl)
+- [Media Presets](#media-presets)
+- [Image Processing Script](#image-processing-script)
+- [Formatting and Linting](#formatting-and-linting)
+- [Testing](#testing)
+- [Compiling](#compiling)
+- [Notes](#notes)
+- [Code Coverage](#code-coverage)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Features
+
+* Upload or capture images via the web UI
+* Convert photos to 1‑bit dithered bitmaps using Pillow
+* Encode to EPL2 or ZPL and send raw jobs to CUPS
+* Configure media widths and printer language
+* Optional test mode to skip actual printing
+
+## Quick Start
+
+### Prerequisites
 
 * Python 3.9+
 * [CUPS](https://www.cups.org/) with a **raw** queue named `zebra2844`
 * Zebra LP2844 or LP2844‑Z printer connected via USB
 * `DITHERBOOTH_PRINTER` environment variable (optional) to override the CUPS queue name; defaults to `zebra2844`
 
-### Create a raw queue
-Plug the printer in and register it with CUPS.  Both Raspberry Pi OS and macOS ship with CUPS.
+#### Create a raw queue
 
 ```bash
 sudo lpadmin -p zebra2844 -E -v usb://Zebra/LP2844 -m raw
 ```
 
-You can verify the queue with:
+Verify the queue:
 
 ```bash
 lpstat -p zebra2844
 ```
 
-### Smoke‑test the printer
-Print a simple "Hello" label to confirm the queue works before using the app:
+#### Smoke-test the printer
+
+Print a simple label to confirm the queue works:
 
 ```bash
 python - <<'PY'
@@ -42,9 +77,7 @@ spool_raw('zebra2844', payload)
 PY
 ```
 
-The printer should output a small label containing the word *Hello*.
-
-## Installation
+### Installation
 
 ```bash
 python3 -m venv venv
@@ -52,17 +85,15 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Development server
-
-Start the API and static frontend:
+### Run the development server
 
 ```bash
 make dev
 ```
 
-Visit [http://localhost:8000](http://localhost:8000) and upload or capture a photo.  Choose media width and printer language and press **Print** to send the job to the printer.
+Visit [http://localhost:8000](http://localhost:8000) and upload or capture a photo. Choose media width and printer language and press **Print** to send the job to the printer.
 
-### Access on your network (phone/tablet)
+#### Access on your network
 
 Run the dev server bound to your LAN IP:
 
@@ -70,36 +101,34 @@ Run the dev server bound to your LAN IP:
 make dev HOST=0.0.0.0 PORT=8000
 ```
 
-Find your IP (examples):
+Find your IP:
 
-- macOS: `ipconfig getifaddr en0`
-- Linux: `hostname -I`
+* macOS: `ipconfig getifaddr en0`
+* Linux: `hostname -I`
 
-Then open `http://<your-ip>:8000` on your phone (same Wi‑Fi). Use the gear icon (Dev Settings) to enable Test Mode so no printer is required.
+Open `http://<your-ip>:8000` on your phone. Use the gear icon (Dev Settings) to enable Test Mode so no printer is required.
 
 ### Developer settings and test mode
 
 The app exposes a small password-protected settings API to make the frontend configurable without exposing options to end users. These settings are persisted to a JSON file (`ditherbooth_config.json` by default) and are used both by the UI and the print endpoint.
 
-- `DITHERBOOTH_DEV_PASSWORD`: Password required for the settings API (default: `dev` for local/testing). Set this in production.
-- `DITHERBOOTH_CONFIG_PATH`: Optional path to the settings JSON file. Useful in tests or deployments.
+* `DITHERBOOTH_DEV_PASSWORD`: Password required for the settings API (default: `dev` for local/testing). Set this in production.
+* `DITHERBOOTH_CONFIG_PATH`: Optional path to the settings JSON file. Useful in tests or deployments.
 
 Endpoints:
 
-- `GET /api/public-config`: Public, returns defaults and whether to lock controls in the UI.
-- `GET /api/dev/settings`: Requires header `X-Dev-Password`. Returns full config.
-- `PUT /api/dev/settings`: Requires header `X-Dev-Password`. Accepts JSON fields:
-  - `test_mode` (bool) — if true, the `/print` endpoint will process the image but skip spooling to the printer and return `{status:"ok", mode:"test"}`.
-  - `default_media` (string: one of `continuous58`, `continuous80`, `label100x150`)
-  - `default_lang` (string: `EPL` or `ZPL`)
-  - `lock_controls` (bool) — hides media/language selectors in the UI for kiosk usage.
-  - `printer_name` (string, optional) — override the printer queue name used by the backend (otherwise falls back to `DITHERBOOTH_PRINTER` env, then `zebra2844`).
-
-The redesigned frontend includes a settings modal (gear icon) where an admin can enter the dev password to view and update the settings. Regular users won’t see or need to touch configuration; if `lock_controls` is enabled, the media/language selectors are hidden and the UI presents a simple “choose image → print” flow.
+* `GET /api/public-config`: Public, returns defaults and whether to lock controls in the UI.
+* `GET /api/dev/settings`: Requires header `X-Dev-Password`. Returns full config.
+* `PUT /api/dev/settings`: Requires header `X-Dev-Password`. Accepts JSON fields:
+  * `test_mode` (bool) — if true, the `/print` endpoint will process the image but skip spooling to the printer and return `{status:"ok", mode:"test"}`.
+  * `default_media` (string: one of `continuous58`, `continuous80`, `label100x150`)
+  * `default_lang` (string: `EPL` or `ZPL`)
+  * `lock_controls` (bool) — hides media/language selectors in the UI for kiosk usage.
+  * `printer_name` (string, optional) — override the printer queue name used by the backend (otherwise falls back to `DITHERBOOTH_PRINTER` env, then `zebra2844`).
 
 ## API test with cURL
 
-You can send an image directly to the `/print` endpoint without the UI:
+Send an image directly to the `/print` endpoint without the UI:
 
 ```bash
 curl -F "file=@path/to/image.jpg" \
@@ -116,15 +145,15 @@ If test mode is enabled via settings, the response will include `{ "status": "ok
 
 Available media widths (dots):
 
-- `continuous58` → 463
-- `continuous80` → 640 (default)
-- `label100x150` → 799
+* `continuous58` → 463
+* `continuous80` → 640 (default)
+* `label100x150` → 799
 
 You can change the default in the Dev Settings modal, or via the API.
 
 ## Image processing script
 
-- `notebooks/image_processing.py` (uses `# %%` cells)
+* `notebooks/image_processing.py` (uses `# %%` cells)
 
 Run end-to-end (auto-picks an image in `notebooks/` if available):
 
@@ -147,25 +176,6 @@ python notebooks/image_processing.py -i notebooks/your_image.png --out notebooks
 
 You can also open the script in VS Code/Jupyter and run the `# %%` cells interactively.
 
-## Examples
-
-The images below are produced with the exact pipeline used for printing: the helper `imaging.process.to_1bit` (same code path FastAPI calls before encoding to EPL/ZPL). Width is set to `463` dots (media `continuous58`).
-
-Generate the outputs locally:
-
-```bash
-python notebooks/image_processing.py -i notebooks/20250902_0027_PartyinthePark_example.png -w 463
-```
-
-Result files are written to `notebooks/out/`.
-
-Original (left) and final 1‑bit (right):
-
-<p>
-  <img src="static/examples/original.png" alt="Original example" width="280"/>
-  <img src="static/examples/final_1bit_463.png" alt="Processed 1-bit (to_1bit)" width="280"/>
-</p>
-
 Optional intermediate views used for illustration (not sent to the printer):
 
 <p>
@@ -181,6 +191,14 @@ Format the code with:
 make format
 ```
 
+## Testing
+
+Run the test suite:
+
+```bash
+pytest
+```
+
 ## Compiling
 
 Check that the Python sources are syntactically valid:
@@ -191,15 +209,25 @@ python -m py_compile app.py imaging/process.py printer/cups.py printer/epl.py pr
 
 ## Notes
 
-Camera capture in the browser requires HTTPS on non‑localhost hosts.  When deploying on a LAN, run the service behind a self‑signed certificate or a local CA such as `mkcert`.
+Camera capture in the browser requires HTTPS on non‑localhost hosts. When deploying on a LAN, run the service behind a self‑signed certificate or a local CA such as `mkcert`.
 
-### Code coverage (Codecov)
+## Code coverage
 
 This repository publishes test coverage to Codecov via GitHub Actions. The workflow runs `pytest --cov=. --cov-report=xml` and uploads `coverage.xml`.
 
-- Public repo: no token required.
-- Private repo: set `CODECOV_TOKEN` in repository secrets if needed.
+* Public repo: no token required.
+* Private repo: set `CODECOV_TOKEN` in repository secrets if needed.
+
+## Contributing
+
+Pull requests are welcome! Please open an issue for major changes and ensure tests pass before submitting.
+
+```bash
+make format
+pytest
+```
 
 ## License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
