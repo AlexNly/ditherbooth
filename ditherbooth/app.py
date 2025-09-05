@@ -77,7 +77,10 @@ async def print_image(
         # avoid blocking the event loop.
         img = await run_in_threadpool(to_1bit, img_bytes, width)
         if lang_val == Lang.EPL:
-            payload = img_to_epl_gw(img)
+            if media_val in (Media.continuous58, Media.continuous80):
+                payload = img_to_epl_gw(img, gap=0)
+            else:
+                payload = img_to_epl_gw(img)
         else:
             payload = img_to_zpl_gf(img)
 
