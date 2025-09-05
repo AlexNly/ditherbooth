@@ -79,7 +79,7 @@ def test_print_endpoint_label_media(tmp_path, monkeypatch):
     assert response.json() == {"status": "ok"}
     assert called, "spool_raw was not called"
     _, payload = called[0]
-    assert payload.startswith(b"N\nq799\nQ10,24\nGW20,20,100,10,")
+    assert payload.startswith(b"N\nq799\nQ1199,24\nGW20,20,100,1199,")
 
 
 def test_printer_name_from_env(monkeypatch):
