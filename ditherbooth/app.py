@@ -15,10 +15,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.concurrency import run_in_threadpool
 from PIL import UnidentifiedImageError
 
-from imaging.process import to_1bit
-from printer.cups import spool_raw
-from printer.epl import img_to_epl_gw
-from printer.zpl import img_to_zpl_gf
+from ditherbooth.imaging.process import to_1bit
+from ditherbooth.printer.cups import spool_raw
+from ditherbooth.printer.epl import img_to_epl_gw
+from ditherbooth.printer.zpl import img_to_zpl_gf
 
 
 class Media(str, Enum):

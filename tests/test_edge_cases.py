@@ -18,7 +18,7 @@ def oversize_bytes(megabytes=11):
 
 
 def test_print_invalid_image_returns_400(monkeypatch):
-    import app as app_module
+    import ditherbooth.app as app_module
 
     client = TestClient(app_module.app)
 
@@ -34,7 +34,7 @@ def test_print_invalid_image_returns_400(monkeypatch):
 
 
 def test_print_oversize_returns_413(monkeypatch):
-    import app as app_module
+    import ditherbooth.app as app_module
 
     client = TestClient(app_module.app)
 
@@ -50,7 +50,7 @@ def test_print_oversize_returns_413(monkeypatch):
 
 
 def test_preview_invalid_image_returns_400(monkeypatch):
-    import app as app_module
+    import ditherbooth.app as app_module
 
     client = TestClient(app_module.app)
 
@@ -66,7 +66,7 @@ def test_preview_invalid_image_returns_400(monkeypatch):
 
 
 def test_preview_oversize_returns_413(monkeypatch):
-    import app as app_module
+    import ditherbooth.app as app_module
 
     client = TestClient(app_module.app)
 
@@ -84,7 +84,7 @@ def test_preview_oversize_returns_413(monkeypatch):
 def test_print_spool_error_returns_502(monkeypatch, tmp_path):
     # Isolate config so test_mode is definitely off
     monkeypatch.setenv("DITHERBOOTH_CONFIG_PATH", str(tmp_path / "cfg.json"))
-    import app as app_module
+    import ditherbooth.app as app_module
     import importlib
     importlib.reload(app_module)
     from PIL import Image
@@ -114,7 +114,7 @@ def test_print_spool_error_returns_502(monkeypatch, tmp_path):
 
 def test_print_zpl_path(monkeypatch, tmp_path):
     monkeypatch.setenv("DITHERBOOTH_CONFIG_PATH", str(tmp_path / "cfg.json"))
-    import app as app_module
+    import ditherbooth.app as app_module
     import importlib
     importlib.reload(app_module)
     from PIL import Image
@@ -152,7 +152,7 @@ def test_testmode_delay(monkeypatch, tmp_path):
     # Set a short delay and ensure the endpoint honors it
     cfg_path = tmp_path / "cfg.json"
     monkeypatch.setenv("DITHERBOOTH_CONFIG_PATH", str(cfg_path))
-    import app as app_module
+    import ditherbooth.app as app_module
     importlib.reload(app_module)
     client = TestClient(app_module.app)
 

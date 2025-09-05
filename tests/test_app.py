@@ -1,10 +1,7 @@
 from fastapi.testclient import TestClient
-from pathlib import Path
-import sys
 import importlib
 
-sys.path.append(str(Path(__file__).resolve().parents[1]))
-from app import app
+from ditherbooth.app import app
 
 
 def test_index_returns_html():
@@ -17,7 +14,7 @@ def test_index_returns_html():
 def test_print_endpoint(tmp_path, monkeypatch):
     # Ensure test_mode is not enabled via any existing config
     monkeypatch.setenv("DITHERBOOTH_CONFIG_PATH", str(tmp_path / "cfg.json"))
-    import app as app_module
+    import ditherbooth.app as app_module
     importlib.reload(app_module)
     client = TestClient(app_module.app)
     called = []
@@ -51,6 +48,6 @@ def test_print_endpoint(tmp_path, monkeypatch):
 
 def test_printer_name_from_env(monkeypatch):
     monkeypatch.setenv("DITHERBOOTH_PRINTER", "myprinter")
-    import app as app_module
+    import ditherbooth.app as app_module
     importlib.reload(app_module)
     assert app_module.PRINTER_NAME == "myprinter"

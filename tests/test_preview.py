@@ -13,7 +13,7 @@ def make_img_bytes():
 
 
 def test_preview_returns_png(monkeypatch):
-    import app as app_module
+    import ditherbooth.app as app_module
 
     client = TestClient(app_module.app)
 
@@ -32,7 +32,7 @@ def test_preview_returns_png(monkeypatch):
 
 
 def test_public_config_has_continuous80():
-    import app as app_module
+    import ditherbooth.app as app_module
 
     client = TestClient(app_module.app)
     res = client.get("/api/public-config")

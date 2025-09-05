@@ -6,18 +6,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-import sys
 import argparse
 
 from PIL import Image, ImageOps
+from ditherbooth.imaging.process import to_1bit
 
-
-# Ensure repo root is on sys.path so `imaging` imports resolve
 REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-from imaging.process import to_1bit  # noqa: E402
 
 
 def _show(img: Image.Image, title: str | None = None) -> None:
