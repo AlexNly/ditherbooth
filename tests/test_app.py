@@ -44,6 +44,7 @@ def test_print_endpoint(tmp_path, monkeypatch):
     printer_name, payload = called[0]
     assert printer_name == "Zebra_LP2844"
     assert isinstance(payload, (bytes, bytearray))
+    assert payload.startswith(b"N\nq463\nQ10,0\nGW20,20,58,10,")
 
 
 def test_printer_name_from_env(monkeypatch):

@@ -2,7 +2,7 @@ import math
 from PIL import Image
 
 
-def img_to_epl_gw(img: Image.Image, x: int = 20, y: int = 20) -> bytes:
+def img_to_epl_gw(img: Image.Image, x: int = 20, y: int = 20, gap: int = 24) -> bytes:
     if img.mode != "1":
         raise ValueError("Image must be 1-bit")
     width, height = img.size
@@ -21,6 +21,6 @@ def img_to_epl_gw(img: Image.Image, x: int = 20, y: int = 20) -> bytes:
                 byte = 0
         if bit_count % 8 != 0:
             data.append(byte)
-    header = f"N\nq{width}\nQ{height},24\n".encode()
+    header = f"N\nq{width}\nQ{height},{gap}\n".encode()
     command = f"GW{x},{y},{row_bytes},{height},".encode()
     return header + command + bytes(data) + b"\nP1\n"

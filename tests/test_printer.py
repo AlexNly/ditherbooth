@@ -17,6 +17,12 @@ def test_img_to_epl_gw_formats_bytes():
     assert data == b"\xff" * 8
 
 
+def test_img_to_epl_gw_accepts_gap():
+    img = make_black_image()
+    payload = img_to_epl_gw(img, gap=0)
+    assert payload.startswith(b"N\nq8\nQ8,0\nGW20,20,1,8,")
+
+
 def test_img_to_zpl_gf_formats_bytes():
     img = make_black_image()
     payload = img_to_zpl_gf(img)
