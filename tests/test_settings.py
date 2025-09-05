@@ -31,7 +31,7 @@ def test_public_config_defaults(tmp_path, monkeypatch):
     res = client.get("/api/public-config")
     assert res.status_code == 200
     data = res.json()
-    assert set(["default_media", "default_lang", "lock_controls", "media_options", "lang_options"]).issubset(data.keys())
+    assert set(["default_media", "default_lang", "lock_controls", "design_mode", "media_options", "lang_options"]).issubset(data.keys())
     assert data["default_media"] in data["media_options"]
     assert data["default_lang"] in data["lang_options"]
 

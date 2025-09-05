@@ -161,6 +161,7 @@ def get_config_path() -> Path:
 
 DEFAULT_CONFIG = {
     "test_mode": False,
+    "design_mode": False,
     "default_media": Media.continuous80.value,
     "default_lang": Lang.EPL.value,
     "lock_controls": False,
@@ -255,6 +256,7 @@ async def public_config() -> dict:
         "default_media": str(cfg.get("default_media", Media.continuous58.value)),
         "default_lang": str(cfg.get("default_lang", Lang.EPL.value)),
         "lock_controls": bool(cfg.get("lock_controls", False)),
+        "design_mode": bool(cfg.get("design_mode", False)),
         "media_options": [m.value for m in Media],
         "lang_options": [l.value for l in Lang],
         "epl_darkness": cfg.get("epl_darkness"),
@@ -266,6 +268,7 @@ async def public_config() -> dict:
 async def get_dev_settings(request: Request) -> JSONResponse:
     check_dev_password(request)
     cfg = load_config()
+    cfg.setdefault("design_mode", False)
     # Include available options to aid the UI
     body = {
         "config": cfg,
@@ -312,6 +315,8 @@ async def put_dev_settings(request: Request) -> JSONResponse:
             cfg["default_lang"] = l
     if "lock_controls" in payload:
         cfg["lock_controls"] = bool(payload["lock_controls"])
+    if "design_mode" in payload:
+        cfg["design_mode"] = bool(payload["design_mode"])
     if "printer_name" in payload:
         # Allow empty/None to clear override
         v = payload["printer_name"]
