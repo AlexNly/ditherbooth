@@ -83,6 +83,8 @@ PY
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+# For development and testing
+pip install -r requirements-dev.txt
 ```
 
 ### Run the development server
@@ -188,6 +190,7 @@ Optional intermediate views used for illustration (not sent to the printer):
 Format the code with:
 
 ```bash
+pip install -r requirements-dev.txt
 make format
 ```
 
@@ -196,6 +199,7 @@ make format
 Run the test suite:
 
 ```bash
+pip install -r requirements-dev.txt
 pytest
 ```
 
