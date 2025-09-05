@@ -26,6 +26,7 @@ class Media(str, Enum):
     continuous80 = "continuous80"
     label100x150 = "label100x150"
     label55x30 = "label55x30"
+    label50x30 = "label50x30"
 
 
 class Lang(str, Enum):
@@ -39,6 +40,8 @@ MEDIA_DIMENSIONS = {
     # LP2844 at 203dpi: 100mm≈800 dots, 150mm≈1200 dots
     Media.label100x150: (800, 1200),
     Media.label55x30: (440, 240),
+    # 50x30 mm at 203dpi
+    Media.label50x30: (400, 240),
 }
 
 # Default to the typical CUPS queue name for Zebra LP2844 printers,
@@ -78,11 +81,8 @@ async def print_image(
         width, fixed_height = MEDIA_DIMENSIONS[media_val]
         # Conversion to 1-bit is CPU-intensive, so run it in a thread pool to
         # avoid blocking the event loop.
-        img = await run_in_threadpool(to_1bit, img_bytes, width)
-        # For fixed-size labels, crop if taller than label; do not pad if
-        # shorter so the remaining area stays blank and unprinted.
-        if fixed_height and img.height > fixed_height:
-            img = img.crop((0, 0, width, fixed_height))
+        # Resize to fit width and, if present, max label height (contain).
+        img = await run_in_threadpool(to_1bit, img_bytes, width, fixed_height)
         if lang_val == Lang.EPL:
             cfg_dark = cfg.get("epl_darkness")
             cfg_speed = cfg.get("epl_speed")
@@ -375,8 +375,8 @@ async def preview_image(
         img_bytes = await file.read()
         if len(img_bytes) > 10 * 1024 * 1024:
             raise HTTPException(status_code=413, detail="File too large")
-        width, _ = MEDIA_DIMENSIONS[media_val]
-        img = await run_in_threadpool(to_1bit, img_bytes, width)
+        width, max_h = MEDIA_DIMENSIONS[media_val]
+        img = await run_in_threadpool(to_1bit, img_bytes, width, max_h)
         # Ensure mode 1-bit, convert to PNG bytes
         buf = io.BytesIO()
         img.save(buf, format="PNG")
