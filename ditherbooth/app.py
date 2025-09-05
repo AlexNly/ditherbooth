@@ -85,10 +85,15 @@ async def print_image(
             cfg_dark = cfg.get("epl_darkness")
             cfg_speed = cfg.get("epl_speed")
             if media_val in (Media.continuous58, Media.continuous80):
+                # Trim trailing white rows for continuous media to avoid
+                # unnecessary feed after content. Leave a tiny post-print
+                # spacing by setting a small form length (Q=16 ≈ 2 mm).
+                img = await run_in_threadpool(trim_bottom_white, img)
                 payload = img_to_epl_gw(
                     img,
+                    y=0,
                     gap=0,
-                    label_height=fixed_height,
+                    label_height=25,
                     darkness=cfg_dark if cfg_dark is not None else None,
                     speed=cfg_speed if cfg_speed is not None else None,
                 )
@@ -195,6 +200,41 @@ def write_config(cfg: dict) -> None:
                 os.remove(tmp_path)
         except Exception:  # noqa: BLE001
             pass
+
+
+def trim_bottom_white(img: Image.Image, margin: int = 6, min_density_ratio: float = 0.01) -> Image.Image:
+    """Trim trailing white rows from a 1-bit image for continuous media.
+
+    Scans from the bottom up to find the last row containing any black pixel
+    (value 0). Returns a crop from the top to that row plus a small margin.
+    Ensures a minimum height of 1 row.
+    """
+    if img.mode != "1":
+        return img
+    width, height = img.size
+    pixels = img.load()
+    last_content = -1
+    # Consider a row "content" only if it has a modest number of black pixels
+    # to avoid sparse dither specks keeping long blank tails.
+    min_black = max(3, int(width * min_density_ratio))
+    for row in range(height - 1, -1, -1):
+        black_count = 0
+        # Count black pixels but stop early if threshold reached
+        for col in range(width):
+            if pixels[col, row] == 0:
+                black_count += 1
+                if black_count >= min_black:
+                    break
+        if black_count >= min_black:
+            last_content = row
+            break
+    if last_content == -1:
+        # No black pixels; keep a tiny height to avoid zero-length form
+        return img.crop((0, 0, width, 1))
+    new_h = min(height, max(1, last_content + 1 + margin))
+    if new_h >= height:
+        return img
+    return img.crop((0, 0, width, new_h))
 
 
 def check_dev_password(request: Request) -> None:
