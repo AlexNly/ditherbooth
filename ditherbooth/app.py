@@ -35,7 +35,8 @@ class Lang(str, Enum):
 MEDIA_DIMENSIONS = {
     Media.continuous58: (463, None),
     Media.continuous80: (640, None),
-    Media.label100x150: (799, 1199),
+    # LP2844 at 203dpi: 100mm≈800 dots, 150mm≈1200 dots
+    Media.label100x150: (800, 1200),
 }
 
 # Default to the typical CUPS queue name for Zebra LP2844 printers,
@@ -76,15 +77,24 @@ async def print_image(
         # Conversion to 1-bit is CPU-intensive, so run it in a thread pool to
         # avoid blocking the event loop.
         img = await run_in_threadpool(to_1bit, img_bytes, width)
-        if fixed_height and img.height < fixed_height:
-            canvas = Image.new("1", (width, fixed_height), 1)
-            canvas.paste(img, (0, 0))
-            img = canvas
+        # For fixed-size labels, crop if taller than label; do not pad if
+        # shorter so the remaining area stays blank and unprinted.
+        if fixed_height and img.height > fixed_height:
+            img = img.crop((0, 0, width, fixed_height))
         if lang_val == Lang.EPL:
             if media_val in (Media.continuous58, Media.continuous80):
                 payload = img_to_epl_gw(img, gap=0, label_height=fixed_height)
             else:
-                payload = img_to_epl_gw(img, label_height=fixed_height)
+                # For fixed-size labels, start at y=0 and let the printer use
+                # calibrated gap; reduce darkness and speed to avoid thermal cutoffs.
+                payload = img_to_epl_gw(
+                    img,
+                    y=0,
+                    label_height=fixed_height,
+                    gap=None,
+                    darkness=8,
+                    speed=2,
+                )
         else:
             payload = img_to_zpl_gf(img)
 

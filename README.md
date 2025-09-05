@@ -149,7 +149,7 @@ Available media widths (dots):
 
 * `continuous58` → 463
 * `continuous80` → 640 (default)
-* `label100x150` → 799
+* `label100x150` → 800
 
 You can change the default in the Dev Settings modal, or via the API.
 
@@ -234,4 +234,3 @@ pytest
 ## License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-

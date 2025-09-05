@@ -67,7 +67,7 @@ def test_print_endpoint_label_media(tmp_path, monkeypatch):
     from PIL import Image
     import io
 
-    img = Image.new("RGB", (799, 10), color="black")
+    img = Image.new("RGB", (800, 10), color="black")
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)
@@ -79,7 +79,7 @@ def test_print_endpoint_label_media(tmp_path, monkeypatch):
     assert response.json() == {"status": "ok"}
     assert called, "spool_raw was not called"
     _, payload = called[0]
-    assert payload.startswith(b"N\nq799\nQ1199,24\nGW20,20,100,1199,")
+    assert payload.startswith(b"N\nD8\nS2\nq800\nQ1200\nGW20,0,100,10,")
 
 
 def test_printer_name_from_env(monkeypatch):
