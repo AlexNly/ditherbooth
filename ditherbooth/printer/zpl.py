@@ -13,7 +13,7 @@ def img_to_zpl_gf(img: Image.Image, x: int = 20, y: int = 20) -> bytes:
         byte = 0
         bit_count = 0
         for col in range(width):
-            if pixels[col, row] == 0:
+            if pixels[col, row] == 255:
                 byte |= 1 << (7 - (bit_count % 8))
             bit_count += 1
             if bit_count % 8 == 0:
