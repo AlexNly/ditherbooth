@@ -13,7 +13,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.concurrency import run_in_threadpool
-from PIL import UnidentifiedImageError
+from PIL import Image, UnidentifiedImageError
 
 from ditherbooth.imaging.process import to_1bit
 from ditherbooth.printer.cups import spool_raw
@@ -32,10 +32,10 @@ class Lang(str, Enum):
     ZPL = "ZPL"
 
 
-MEDIA_WIDTHS = {
-    Media.continuous58: 463,
-    Media.continuous80: 640,
-    Media.label100x150: 799,
+MEDIA_DIMENSIONS = {
+    Media.continuous58: (463, None),
+    Media.continuous80: (640, None),
+    Media.label100x150: (799, 1199),
 }
 
 # Default to the typical CUPS queue name for Zebra LP2844 printers,
@@ -72,15 +72,19 @@ async def print_image(
         # Simple upload size guard (10 MB)
         if len(img_bytes) > 10 * 1024 * 1024:
             raise HTTPException(status_code=413, detail="File too large")
-        width = MEDIA_WIDTHS[media_val]
+        width, fixed_height = MEDIA_DIMENSIONS[media_val]
         # Conversion to 1-bit is CPU-intensive, so run it in a thread pool to
         # avoid blocking the event loop.
         img = await run_in_threadpool(to_1bit, img_bytes, width)
+        if fixed_height and img.height < fixed_height:
+            canvas = Image.new("1", (width, fixed_height), 1)
+            canvas.paste(img, (0, 0))
+            img = canvas
         if lang_val == Lang.EPL:
             if media_val in (Media.continuous58, Media.continuous80):
-                payload = img_to_epl_gw(img, gap=0)
+                payload = img_to_epl_gw(img, gap=0, label_height=fixed_height)
             else:
-                payload = img_to_epl_gw(img)
+                payload = img_to_epl_gw(img, label_height=fixed_height)
         else:
             payload = img_to_zpl_gf(img)
 
@@ -280,7 +284,7 @@ async def preview_image(
         img_bytes = await file.read()
         if len(img_bytes) > 10 * 1024 * 1024:
             raise HTTPException(status_code=413, detail="File too large")
-        width = MEDIA_WIDTHS[media_val]
+        width, _ = MEDIA_DIMENSIONS[media_val]
         img = await run_in_threadpool(to_1bit, img_bytes, width)
         # Ensure mode 1-bit, convert to PNG bytes
         buf = io.BytesIO()
