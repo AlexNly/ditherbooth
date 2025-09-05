@@ -93,7 +93,7 @@ async def print_image(
                     img,
                     y=0,
                     gap=0,
-                    label_height=25,
+                    label_height=16,
                     darkness=cfg_dark if cfg_dark is not None else None,
                     speed=cfg_speed if cfg_speed is not None else None,
                 )
