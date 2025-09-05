@@ -6,6 +6,24 @@
   let selectedFile = null;
   let publicConfig = null;
 
+  const mediaLabels = {
+    continuous58: '58mm continuous',
+    continuous80: '80mm continuous',
+    label50x30: '50x30 label',
+    label55x30: '55x30 label',
+    label100x150: '100x150 label',
+  };
+
+  function ensureOption(select, value) {
+    if (!select) return;
+    if (!Array.from(select.options).some((o) => o.value === value)) {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = mediaLabels[value] || value;
+      select.appendChild(opt);
+    }
+  }
+
   function setStatus(msg, cls = '') {
     ['#status', '#outputMsg'].forEach((sel) => {
       const el = document.querySelector(sel);
@@ -31,9 +49,17 @@
       const res = await fetch('/api/public-config');
       if (!res.ok) throw new Error('Failed to load config');
       publicConfig = await res.json();
-      // Apply defaults
-      $('#media').value = publicConfig.default_media;
+      // Apply defaults and ensure media options exist
+      const mediaSel = $('#media');
+      (publicConfig.media_options || []).forEach((m) => ensureOption(mediaSel, m));
+      ensureOption(mediaSel, publicConfig.default_media);
+      mediaSel.value = publicConfig.default_media;
       $('#lang').value = publicConfig.default_lang;
+      // Enable design UI if allowed
+      document.body.classList.toggle('design-mode', !!publicConfig.design_mode);
+      if (publicConfig.design_mode && typeof window.setupDesign === 'function') {
+        try { window.setupDesign(); } catch (_) {}
+      }
       // Lock controls if requested
       const controls = $('#controls');
       const uploader = $('#uploaderSection');
@@ -171,7 +197,11 @@
         const cfg = data.config || {};
         $('#testMode').checked = !!cfg.test_mode;
         $('#lockControls').checked = !!cfg.lock_controls;
-        $('#defMedia').value = cfg.default_media || 'continuous58';
+        $('#designMode').checked = !!cfg.design_mode;
+        const defMediaSel = $('#defMedia');
+        (cfg.media_options || []).forEach((m) => ensureOption(defMediaSel, m));
+        ensureOption(defMediaSel, cfg.default_media || 'continuous58');
+        defMediaSel.value = cfg.default_media || 'continuous58';
         $('#defLang').value = cfg.default_lang || 'EPL';
         $('#printerName').value = cfg.printer_name || '';
         $('#testDelay').value = (cfg.test_mode_delay_ms ?? 0);
@@ -193,6 +223,7 @@
       const body = {
         test_mode: $('#testMode').checked,
         lock_controls: $('#lockControls').checked,
+        design_mode: $('#designMode').checked,
         default_media: $('#defMedia').value,
         default_lang: $('#defLang').value,
         printer_name: $('#printerName').value.trim() || null,
