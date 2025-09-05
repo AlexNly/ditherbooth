@@ -38,7 +38,10 @@ MEDIA_WIDTHS = {
     Media.label100x150: 799,
 }
 
-PRINTER_NAME = os.getenv("DITHERBOOTH_PRINTER", "zebra2844")
+# Default to the typical CUPS queue name for Zebra LP2844 printers,
+# while still allowing overrides via the DITHERBOOTH_PRINTER environment
+# variable or the config file.
+PRINTER_NAME = os.getenv("DITHERBOOTH_PRINTER", "Zebra_LP2844")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -131,7 +134,7 @@ DEFAULT_CONFIG = {
     "lock_controls": False,
     "test_mode_delay_ms": 0,
     # Optional: override printer queue name; falls back to PRINTER_NAME env.
-    # "printer_name": "zebra2844",
+    # "printer_name": "Zebra_LP2844",
 }
 
 

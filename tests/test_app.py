@@ -42,7 +42,7 @@ def test_print_endpoint(tmp_path, monkeypatch):
     assert response.json() == {"status": "ok"}
     assert called, "spool_raw was not called"
     printer_name, payload = called[0]
-    assert printer_name == "zebra2844"
+    assert printer_name == "Zebra_LP2844"
     assert isinstance(payload, (bytes, bytearray))
 
 

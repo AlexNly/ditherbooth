@@ -47,20 +47,20 @@ Ditherbooth is a small FastAPI service and single-page app that turns uploaded p
 ### Prerequisites
 
 * Python 3.9+
-* [CUPS](https://www.cups.org/) with a **raw** queue named `zebra2844`
+* [CUPS](https://www.cups.org/) with a **raw** queue named `Zebra_LP2844`
 * Zebra LP2844 or LP2844‑Z printer connected via USB
-* `DITHERBOOTH_PRINTER` environment variable (optional) to override the CUPS queue name; defaults to `zebra2844`
+* `DITHERBOOTH_PRINTER` environment variable (optional) to override the CUPS queue name; defaults to `Zebra_LP2844`
 
 #### Create a raw queue
 
 ```bash
-sudo lpadmin -p zebra2844 -E -v usb://Zebra/LP2844 -m raw
+sudo lpadmin -p Zebra_LP2844 -E -v usb://Zebra/LP2844 -m raw
 ```
 
 Verify the queue:
 
 ```bash
-lpstat -p zebra2844
+lpstat -p Zebra_LP2844
 ```
 
 #### Smoke-test the printer
@@ -73,7 +73,7 @@ from ditherbooth.printer.cups import spool_raw
 payload = (
     'N\nq400\nQ200,24\nA50,50,0,3,1,1,N,"Hello"\nP1\n'
 )
-spool_raw('zebra2844', payload)
+spool_raw('Zebra_LP2844', payload)
 PY
 ```
 
@@ -126,7 +126,7 @@ Endpoints:
   * `default_media` (string: one of `continuous58`, `continuous80`, `label100x150`)
   * `default_lang` (string: `EPL` or `ZPL`)
   * `lock_controls` (bool) — hides media/language selectors in the UI for kiosk usage.
-  * `printer_name` (string, optional) — override the printer queue name used by the backend (otherwise falls back to `DITHERBOOTH_PRINTER` env, then `zebra2844`).
+  * `printer_name` (string, optional) — override the printer queue name used by the backend (otherwise falls back to `DITHERBOOTH_PRINTER` env, then `Zebra_LP2844`).
 
 ## API test with cURL
 
