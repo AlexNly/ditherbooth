@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 import importlib
+import pytest
 
 from ditherbooth.app import app
 
@@ -47,7 +48,14 @@ def test_print_endpoint(tmp_path, monkeypatch):
     assert payload.startswith(b"N\nD8\nS2\nq463\nQ16,0\nGW20,0,58,10,")
 
 
-def test_print_endpoint_label_media(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "media,width,height",
+    [
+        ("label100x150", 800, 1200),
+        ("label55x30", 440, 240),
+    ],
+)
+def test_print_endpoint_label_media(tmp_path, monkeypatch, media, width, height):
     # Ensure test_mode is not enabled via any existing config
     monkeypatch.setenv("DITHERBOOTH_CONFIG_PATH", str(tmp_path / "cfg.json"))
     import ditherbooth.app as app_module
@@ -67,19 +75,21 @@ def test_print_endpoint_label_media(tmp_path, monkeypatch):
     from PIL import Image
     import io
 
-    img = Image.new("RGB", (800, 10), color="black")
+    img = Image.new("RGB", (width, 10), color="black")
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)
 
     files = {"file": ("test.png", buf.getvalue(), "image/png")}
-    data = {"media": "label100x150", "lang": "EPL"}
+    data = {"media": media, "lang": "EPL"}
     response = client.post("/print", files=files, data=data)
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
     assert called, "spool_raw was not called"
     _, payload = called[0]
-    assert payload.startswith(b"N\nD8\nS2\nq800\nQ1200\nGW20,0,100,10,")
+    row_bytes = width // 8
+    expected = f"N\nD8\nS2\nq{width}\nQ{height}\nGW20,0,{row_bytes},10,".encode()
+    assert payload.startswith(expected)
 
 
 def test_printer_name_from_env(monkeypatch):

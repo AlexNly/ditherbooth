@@ -31,11 +31,13 @@ def test_preview_returns_png(monkeypatch):
     assert len(res.content) > 0
 
 
-def test_public_config_has_continuous80():
+def test_public_config_has_continuous80_and_label55x30():
     import ditherbooth.app as app_module
 
     client = TestClient(app_module.app)
     res = client.get("/api/public-config")
     assert res.status_code == 200
     data = res.json()
-    assert "continuous80" in data.get("media_options", [])
+    opts = data.get("media_options", [])
+    assert "continuous80" in opts
+    assert "label55x30" in opts
