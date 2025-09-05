@@ -264,7 +264,7 @@
     const cs = getComputedStyle(frame);
     const paddingX = parseFloat(cs.paddingLeft || '0') + parseFloat(cs.paddingRight || '0');
     let widthPx = Math.max(200, (frame.clientWidth || 320) - paddingX);
-    if (media === 'label100x150') {
+    if (media.startsWith('label')) {
       frame.classList.add('label');
       frame.classList.remove('roll');
     } else {

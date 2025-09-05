@@ -25,6 +25,7 @@ class Media(str, Enum):
     continuous58 = "continuous58"
     continuous80 = "continuous80"
     label100x150 = "label100x150"
+    label55x30 = "label55x30"
 
 
 class Lang(str, Enum):
@@ -37,6 +38,7 @@ MEDIA_DIMENSIONS = {
     Media.continuous80: (640, None),
     # LP2844 at 203dpi: 100mm≈800 dots, 150mm≈1200 dots
     Media.label100x150: (800, 1200),
+    Media.label55x30: (440, 240),
 }
 
 # Default to the typical CUPS queue name for Zebra LP2844 printers,

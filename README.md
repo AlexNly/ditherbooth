@@ -123,7 +123,7 @@ Endpoints:
 * `GET /api/dev/settings`: Requires header `X-Dev-Password`. Returns full config.
 * `PUT /api/dev/settings`: Requires header `X-Dev-Password`. Accepts JSON fields:
   * `test_mode` (bool) — if true, the `/print` endpoint will process the image but skip spooling to the printer and return `{status:"ok", mode:"test"}`.
-  * `default_media` (string: one of `continuous58`, `continuous80`, `label100x150`)
+  * `default_media` (string: one of `continuous58`, `continuous80`, `label100x150`, `label55x30`)
   * `default_lang` (string: `EPL` or `ZPL`)
   * `lock_controls` (bool) — hides media/language selectors in the UI for kiosk usage.
   * `printer_name` (string, optional) — override the printer queue name used by the backend (otherwise falls back to `DITHERBOOTH_PRINTER` env, then `Zebra_LP2844`).
@@ -150,6 +150,7 @@ Available media widths (dots):
 * `continuous58` → 463
 * `continuous80` → 640 (default)
 * `label100x150` → 800
+* `label55x30` → 440
 
 You can change the default in the Dev Settings modal, or via the API.
 
