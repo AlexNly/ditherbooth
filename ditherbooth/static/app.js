@@ -175,6 +175,8 @@
         $('#defLang').value = cfg.default_lang || 'EPL';
         $('#printerName').value = cfg.printer_name || '';
         $('#testDelay').value = (cfg.test_mode_delay_ms ?? 0);
+        $('#eplDarkness').value = (cfg.epl_darkness ?? '');
+        $('#eplSpeed').value = (cfg.epl_speed ?? '');
         form.hidden = false;
         msg.textContent = 'Connected';
         msg.className = 'status ok';
@@ -195,6 +197,8 @@
         default_lang: $('#defLang').value,
         printer_name: $('#printerName').value.trim() || null,
         test_mode_delay_ms: parseInt($('#testDelay').value || '0', 10) || 0,
+        epl_darkness: (function(){ const v=$('#eplDarkness').value.trim(); return v === '' ? null : parseInt(v,10); })(),
+        epl_speed: (function(){ const v=$('#eplSpeed').value.trim(); return v === '' ? null : parseInt(v,10); })(),
       };
       try {
         const res = await fetch('/api/dev/settings', {

@@ -82,8 +82,16 @@ async def print_image(
         if fixed_height and img.height > fixed_height:
             img = img.crop((0, 0, width, fixed_height))
         if lang_val == Lang.EPL:
+            cfg_dark = cfg.get("epl_darkness")
+            cfg_speed = cfg.get("epl_speed")
             if media_val in (Media.continuous58, Media.continuous80):
-                payload = img_to_epl_gw(img, gap=0, label_height=fixed_height)
+                payload = img_to_epl_gw(
+                    img,
+                    gap=0,
+                    label_height=fixed_height,
+                    darkness=cfg_dark if cfg_dark is not None else None,
+                    speed=cfg_speed if cfg_speed is not None else None,
+                )
             else:
                 # For fixed-size labels, start at y=0 and let the printer use
                 # calibrated gap; reduce darkness and speed to avoid thermal cutoffs.
@@ -92,8 +100,8 @@ async def print_image(
                     y=0,
                     label_height=fixed_height,
                     gap=None,
-                    darkness=8,
-                    speed=2,
+                    darkness=cfg_dark if cfg_dark is not None else None,
+                    speed=cfg_speed if cfg_speed is not None else None,
                 )
         else:
             payload = img_to_zpl_gf(img)
@@ -150,6 +158,9 @@ DEFAULT_CONFIG = {
     "default_lang": Lang.EPL.value,
     "lock_controls": False,
     "test_mode_delay_ms": 0,
+    # EPL-specific tuning (optional). If None, omit commands.
+    "epl_darkness": 8,
+    "epl_speed": 2,
     # Optional: override printer queue name; falls back to PRINTER_NAME env.
     # "printer_name": "Zebra_LP2844",
 }
@@ -204,6 +215,8 @@ async def public_config() -> dict:
         "lock_controls": bool(cfg.get("lock_controls", False)),
         "media_options": [m.value for m in Media],
         "lang_options": [l.value for l in Lang],
+        "epl_darkness": cfg.get("epl_darkness"),
+        "epl_speed": cfg.get("epl_speed"),
     }
 
 
@@ -274,6 +287,32 @@ async def put_dev_settings(request: Request) -> JSONResponse:
         if val < 0:
             raise HTTPException(status_code=400, detail="test_mode_delay_ms must be >= 0")
         cfg["test_mode_delay_ms"] = val
+
+    if "epl_darkness" in payload:
+        val = payload["epl_darkness"]
+        if val is None or val == "":
+            cfg["epl_darkness"] = None
+        else:
+            try:
+                d = int(val)
+            except Exception as exc:  # noqa: BLE001
+                raise HTTPException(status_code=400, detail="epl_darkness must be an integer or null") from exc
+            if not (0 <= d <= 15):
+                raise HTTPException(status_code=400, detail="epl_darkness must be between 0 and 15")
+            cfg["epl_darkness"] = d
+
+    if "epl_speed" in payload:
+        val = payload["epl_speed"]
+        if val is None or val == "":
+            cfg["epl_speed"] = None
+        else:
+            try:
+                s = int(val)
+            except Exception as exc:  # noqa: BLE001
+                raise HTTPException(status_code=400, detail="epl_speed must be an integer or null") from exc
+            if not (1 <= s <= 6):
+                raise HTTPException(status_code=400, detail="epl_speed must be between 1 and 6")
+            cfg["epl_speed"] = s
 
     write_config(cfg)
     return JSONResponse({"status": "saved", "config": cfg})
