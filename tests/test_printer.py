@@ -14,7 +14,7 @@ def test_img_to_epl_gw_formats_bytes():
     assert payload.startswith(b"N\nq8\nQ8,24\nGW20,20,1,8,")
     assert payload.endswith(b"\nP1\n")
     data = payload.split(b"GW20,20,1,8,")[1].split(b"\nP1\n")[0]
-    assert data == b"\xff" * 8
+    assert data == b"\x00" * 8
 
 
 def test_img_to_zpl_gf_formats_bytes():
@@ -23,7 +23,7 @@ def test_img_to_zpl_gf_formats_bytes():
     assert payload.startswith(b"^XA^FO20,20^GFA,8,8,1,")
     assert payload.endswith(b"^FS^XZ")
     data = payload.split(b"^GFA,8,8,1,")[1].split(b"^FS^XZ")[0]
-    assert data == b"FFFFFFFFFFFFFFFF"
+    assert data == b"0000000000000000"
 
 
 def test_printer_functions_require_1bit():
