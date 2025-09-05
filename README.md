@@ -69,7 +69,7 @@ Print a simple label to confirm the queue works:
 
 ```bash
 python - <<'PY'
-from printer.cups import spool_raw
+from ditherbooth.printer.cups import spool_raw
 payload = (
     'N\nq400\nQ200,24\nA50,50,0,3,1,1,N,"Hello"\nP1\n'
 )
@@ -208,7 +208,7 @@ pytest
 Check that the Python sources are syntactically valid:
 
 ```bash
-python -m py_compile app.py imaging/process.py printer/cups.py printer/epl.py printer/zpl.py
+python -m py_compile ditherbooth/app.py ditherbooth/imaging/process.py ditherbooth/printer/cups.py ditherbooth/printer/epl.py ditherbooth/printer/zpl.py
 ```
 
 ## Notes

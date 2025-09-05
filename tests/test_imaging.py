@@ -1,4 +1,4 @@
-from imaging.process import to_1bit
+from ditherbooth.imaging.process import to_1bit
 from PIL import Image
 import io
 

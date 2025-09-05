@@ -1,7 +1,7 @@
 from PIL import Image
 import pytest
-from printer.epl import img_to_epl_gw
-from printer.zpl import img_to_zpl_gf
+from ditherbooth.printer.epl import img_to_epl_gw
+from ditherbooth.printer.zpl import img_to_zpl_gf
 
 
 def make_black_image():

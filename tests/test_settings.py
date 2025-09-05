@@ -19,7 +19,7 @@ def setup_app_with_tmp_config(tmp_path, monkeypatch, password="dev"):
     cfg_path = tmp_path / "cfg.json"
     monkeypatch.setenv("DITHERBOOTH_CONFIG_PATH", str(cfg_path))
     monkeypatch.setenv("DITHERBOOTH_DEV_PASSWORD", password)
-    import app as app_module
+    import ditherbooth.app as app_module
 
     importlib.reload(app_module)
     return app_module
