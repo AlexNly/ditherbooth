@@ -10,6 +10,7 @@ def spool_raw(printer_name: str, payload: Union[bytes, str]) -> None:
         tmp.write(data)
         tmp_path = tmp.name
     try:
-        subprocess.run(["lpr", "-P", printer_name, "-o", "raw", tmp_path], check=True, timeout=30)
+        # macOS no longer supports -o raw option
+        subprocess.run(["lpr", "-P", printer_name, tmp_path], check=True, timeout=30)
     finally:
         os.unlink(tmp_path)

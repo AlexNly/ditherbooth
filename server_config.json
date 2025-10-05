@@ -1,0 +1,8 @@
+{
+  "test_mode": false,
+  "default_media": "continuous58",
+  "default_lang": "EPL",
+  "lock_controls": false,
+  "printer_name": "Zebra_LP2844",
+  "test_mode_delay_ms": 0
+}

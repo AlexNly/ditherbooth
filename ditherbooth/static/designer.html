@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Label Designer</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="icon" href="data:,">
+  <meta name="color-scheme" content="light dark">
+  <style>
+    html, body { height: 100%; overscroll-behavior-y: contain; -webkit-text-size-adjust: 100%; }
+    .designer-layout { display: grid; grid-template-rows: auto 1fr auto; gap: 10px; height: 100dvh; padding: 10px; }
+    @supports (height: 100svh) { .designer-layout { height: 100svh; } }
+    .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .toolbar .spacer { flex: 1; }
+    .canvas-wrap { position: relative; border: 1px solid var(--border, #333); background: var(--panel, #111); display: grid; place-items: center; overflow: auto; border-radius: 10px; }
+    #designCanvas { background: #fff; touch-action: none; }
+    #editBox { position: fixed; z-index: 1000; display: none; border: 1px solid #2f6fed; border-radius: 6px; padding: 6px 8px; background: #fff; color: #000; outline: none; box-shadow: 0 0 0 2px rgba(47,111,237,0.15); font-size: 16px; line-height: 1.35; }
+    .props { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .props label { display: grid; gap: 4px; font-size: 13px; color: var(--muted, #999); }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .icon-btn { padding: 6px 10px; border: 1px solid var(--border,#333); border-radius: 8px; background: var(--panel,#111); color: inherit; }
+    .primary { background: #2f6fed; color: #fff; border: none; }
+    .secondary { background: #222; color: #fff; border: 1px solid #333; }
+    .status { min-height: 22px; font-size: 13px; color: var(--muted,#aaa); }
+  </style>
+</head>
+<body>
+  <header class="app-header" style="padding: 10px 14px;">
+    <h1 style="font-size: 18px;">Label Designer</h1>
+    <nav style="margin-left:auto; display:flex; gap:8px;">
+      <a class="icon-btn" href="/">Photobooth</a>
+    </nav>
+  </header>
+  <main class="designer-layout container">
+    <div class="toolbar">
+      <label>Media
+        <select id="mediaSel">
+          <option value="label100x150">100×150</option>
+          <option value="label55x30">55×30</option>
+          <option value="continuous80">80mm continuous</option>
+        </select>
+      </label>
+      <button id="addText" class="secondary">Add Text</button>
+      <button id="addRect" class="secondary">Add Rect</button>
+      <input type="file" id="imgInput" accept="image/*" hidden />
+      <button id="addImage" class="secondary">Add Image</button>
+      <div class="spacer"></div>
+      <button id="undoBtn" class="icon-btn">Undo</button>
+      <button id="redoBtn" class="icon-btn">Redo</button>
+      <button id="clearBtn" class="icon-btn">Clear</button>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="designCanvas" width="800" height="1200" aria-label="Design canvas"></canvas>
+      <textarea id="editBox" rows="2" spellcheck="false"></textarea>
+    </div>
+
+    <div style="display:grid; gap:10px;">
+      <div class="props" id="propsPane">
+        <label>Text
+          <input type="text" id="propText" placeholder="Edit text" />
+        </label>
+        <label>Font size (dots)
+          <input type="range" id="propSizeRange" min="6" max="240" step="1" />
+          <input type="number" id="propSize" min="6" max="240" step="1" style="width:100%;" />
+        </label>
+        <label>
+          <input type="checkbox" id="propBold" /> Bold
+        </label>
+        <label>X (dots)
+          <input type="number" id="propX" />
+        </label>
+        <label>Y (dots)
+          <input type="number" id="propY" />
+        </label>
+        <label>W (dots)
+          <input type="number" id="propW" />
+        </label>
+        <label>H (dots)
+          <input type="number" id="propH" />
+        </label>
+      </div>
+      <div class="actions">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="snapToggle" /> Snap to guides
+        </label>
+        <label>Template
+          <select id="templateSel">
+            <option value="">None</option>
+            <option value="t_50x30_basic">50×30: Title + Subtitle</option>
+            <option value="t_100x150_basic">100×150: Title + Rect</option>
+          </select>
+        </label>
+        <button id="applyTemplate" class="secondary">Apply</button>
+        <button id="libraryBtn" class="icon-btn">Library</button>
+        <button id="previewBtn" class="secondary">Preview</button>
+        <button id="printBtn" class="primary">Print</button>
+        <div id="designerStatus" class="status"></div>
+      </div>
+      <div style="display:grid; gap:6px;">
+        <img id="previewImg" alt="Preview" style="max-width:100%; display:none; border:1px solid #333; border-radius:8px;" />
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/designer.js" defer></script>
+  <!-- Library Modal -->
+  <div id="libraryModal" class="modal" aria-hidden="true" role="dialog" aria-label="Library" style="display:none;">
+    <div class="modal-content" style="max-width:720px;">
+      <header class="modal-header">
+        <h2>Library</h2>
+        <button id="closeLibrary" class="icon-btn" aria-label="Close">✖️</button>
+      </header>
+      <section class="modal-body" style="display:grid; gap:10px;">
+        <div class="actions" style="flex-wrap:wrap;">
+          <button id="saveAsBtn" class="secondary">Save As…</button>
+          <button id="saveBtn" class="secondary">Save</button>
+          <button id="exportBtn" class="secondary">Export JSON</button>
+          <input type="file" id="importInput" accept="application/json" hidden>
+          <button id="importBtn" class="secondary">Import JSON</button>
+        </div>
+        <div id="libList" style="display:grid; gap:6px; max-height:40vh; overflow:auto;"></div>
+        <div class="actions" style="flex-wrap:wrap;">
+          <button id="printSelectedBtn" class="primary">Print Selected</button>
+          <span style="font-size:12px; color:var(--muted,#999)">Max 100 labels total</span>
+          <div id="libStatus" class="status"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</body>
+</html>
