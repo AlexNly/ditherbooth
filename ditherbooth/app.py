@@ -8,6 +8,8 @@ import subprocess
 import tempfile
 from typing import Optional
 import asyncio
+import uuid
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
@@ -261,6 +263,7 @@ async def public_config() -> dict:
         "lang_options": [l.value for l in Lang],
         "epl_darkness": cfg.get("epl_darkness"),
         "epl_speed": cfg.get("epl_speed"),
+        "media_dimensions": {m.value: {"width": w, "height": h} for m, (w, h) in MEDIA_DIMENSIONS.items()},
     }
 
 
@@ -395,3 +398,68 @@ async def preview_image(
     except Exception as exc:  # noqa: BLE001
         logger.exception("Unexpected server error in preview")
         raise HTTPException(status_code=500, detail="Internal server error") from exc
+
+
+# ---- Template CRUD ----
+
+def get_templates_dir() -> Path:
+    return get_config_path().parent / "templates"
+
+
+@app.get("/api/templates")
+async def list_templates() -> list:
+    tpl_dir = get_templates_dir()
+    if not tpl_dir.exists():
+        return []
+    templates = []
+    for f in sorted(tpl_dir.glob("*.json")):
+        try:
+            data = json.loads(f.read_text())
+            templates.append({"id": data["id"], "name": data["name"], "created_at": data.get("created_at")})
+        except Exception:  # noqa: BLE001
+            continue
+    return templates
+
+
+@app.post("/api/templates")
+async def create_template(request: Request) -> dict:
+    payload = await request.json()
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    name = payload.get("name", "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="name is required")
+    canvas_json = payload.get("canvas_json")
+    if canvas_json is None:
+        raise HTTPException(status_code=400, detail="canvas_json is required")
+
+    tpl_id = str(uuid.uuid4())
+    tpl = {
+        "id": tpl_id,
+        "name": name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "canvas_json": canvas_json,
+    }
+    tpl_dir = get_templates_dir()
+    tpl_dir.mkdir(parents=True, exist_ok=True)
+    (tpl_dir / f"{tpl_id}.json").write_text(json.dumps(tpl, indent=2))
+    return tpl
+
+
+@app.get("/api/templates/{template_id}")
+async def get_template(template_id: str) -> dict:
+    tpl_dir = get_templates_dir()
+    path = tpl_dir / f"{template_id}.json"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Template not found")
+    return json.loads(path.read_text())
+
+
+@app.delete("/api/templates/{template_id}")
+async def delete_template(template_id: str) -> dict:
+    tpl_dir = get_templates_dir()
+    path = tpl_dir / f"{template_id}.json"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Template not found")
+    path.unlink()
+    return {"status": "deleted"}

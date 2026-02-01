@@ -16,12 +16,18 @@
     <header class="app-header">
         <h1>Ditherbooth</h1>
         <nav style="margin-left:auto; display:flex; gap:8px; align-items:center;">
-          <a class="icon-btn" href="/static/designer.html" title="Label Designer">🧩 Designer</a>
           <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">⚙️</button>
         </nav>
     </header>
 
-    <main class="container layout">
+    <!-- Tab Bar -->
+    <nav class="tab-bar" id="tabBar">
+        <button class="tab active" data-tab="photo">Photo</button>
+        <button class="tab" data-tab="designer">Designer</button>
+    </nav>
+
+    <!-- Photo Tab (existing flow) -->
+    <main class="container layout tab-content active" id="tab-photo">
         <section id="uploaderSection" class="uploader card">
             <div id="dropArea" class="drop-area" tabindex="0" aria-label="Drop image here or click to select">
                 <div id="preview" class="preview">
@@ -68,6 +74,47 @@
         </aside>
     </main>
 
+    <!-- Designer Tab -->
+    <div class="container tab-content" id="tab-designer">
+        <div class="designer-toolbar">
+            <button id="dAddText" class="secondary">Add Text</button>
+            <label class="toolbar-label">
+                Size
+                <input type="number" id="dFontSize" value="40" min="8" max="300" step="1" class="toolbar-input">
+            </label>
+            <label class="toolbar-label">
+                Media
+                <select id="dMedia" class="toolbar-select"></select>
+            </label>
+            <button id="dGrid" class="secondary">Grid: On</button>
+            <label class="toolbar-label">
+                Grid
+                <input type="number" id="dGridSize" value="20" min="5" max="100" step="5" class="toolbar-input">
+            </label>
+            <div style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap;">
+                <button id="dDelete" class="secondary">Delete</button>
+                <button id="dPreview" class="secondary">Preview</button>
+                <button id="dPrint" class="primary">Print</button>
+            </div>
+        </div>
+        <div class="designer-canvas-wrap">
+            <canvas id="designerCanvas"></canvas>
+        </div>
+        <div id="dPreviewFrame" class="output-frame roll" style="display:none;">
+            <img id="dPreviewImg" style="max-width:100%; image-rendering:pixelated;">
+        </div>
+        <div id="dStatus" class="status" role="status" aria-live="polite"></div>
+
+        <!-- Templates -->
+        <div class="designer-templates">
+            <div class="actions">
+                <button id="dSave" class="secondary">Save Template</button>
+                <button id="dLoadList" class="secondary">Load Template</button>
+            </div>
+            <div id="dTemplateList" class="template-list" hidden></div>
+        </div>
+    </div>
+
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="settingsTitle">
         <div class="modal-content">
@@ -84,7 +131,7 @@
                 </div>
                 <div id="settingsForm" class="settings-form" hidden>
                     <div class="field">
-                        <label><input type="checkbox" id="testMode"> Test mode (don’t print)</label>
+                        <label><input type="checkbox" id="testMode"> Test mode (don't print)</label>
                     </div>
                     <div class="field">
                         <label>Test mode delay (ms)
@@ -117,12 +164,12 @@
                         </label>
                     </div>
                     <div class="field">
-                        <label>EPL Darkness (0–15)
+                        <label>EPL Darkness (0-15)
                             <input type="number" id="eplDarkness" min="0" max="15" step="1" placeholder="e.g., 8">
                         </label>
                     </div>
                     <div class="field">
-                        <label>EPL Speed (1–6)
+                        <label>EPL Speed (1-6)
                             <input type="number" id="eplSpeed" min="1" max="6" step="1" placeholder="e.g., 2">
                         </label>
                     </div>
@@ -140,7 +187,9 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     <script src="/static/app.js" defer></script>
+    <script src="/static/designer-v2.js" defer></script>
     <noscript>This app requires JavaScript.</noscript>
 </body>
 </html>
