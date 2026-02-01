@@ -93,6 +93,7 @@
             </label>
             <div style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap;">
                 <button id="dDelete" class="secondary">Delete</button>
+                <button id="dAddQueue" class="secondary">Add to Queue</button>
                 <button id="dPreview" class="secondary">Preview</button>
                 <button id="dPrint" class="primary">Print</button>
             </div>
@@ -104,6 +105,19 @@
             <img id="dPreviewImg" style="max-width:100%; image-rendering:pixelated;">
         </div>
         <div id="dStatus" class="status" role="status" aria-live="polite"></div>
+
+        <!-- Queue -->
+        <div class="queue-section" id="dQueueSection">
+            <div class="queue-header">
+                <h3>Queue <span id="dQueueCount">(0)</span></h3>
+                <div class="actions" style="flex:0 0 auto;">
+                    <button id="dPrintQueue" class="primary" disabled>Print Queue</button>
+                    <button id="dClearQueue" class="secondary" disabled>Clear</button>
+                </div>
+            </div>
+            <div class="queue-strip" id="dQueueStrip"></div>
+            <div id="dQueueProgress" class="status" hidden></div>
+        </div>
 
         <!-- Templates -->
         <div class="designer-templates">

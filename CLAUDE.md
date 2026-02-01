@@ -179,11 +179,21 @@ cancel -a Zebra_LP2844     # Cancel all jobs
 - Preview: exports canvas to PNG, POSTs to `/preview` for 1-bit dithered preview
 - Print: exports canvas to PNG, POSTs to `/print`
 - Templates: save/load/delete via `/api/templates` endpoints
+- Multi-label queue: add labels to queue, reorder via drag-and-drop, print all sequentially
 
 **Template storage:**
 - Templates stored as JSON files in `{config_dir}/templates/` directory
 - Each template: `{ id, name, created_at, canvas_json }` (Fabric.js JSON serialization)
 - Template ID = UUID, filename = `{id}.json`
+
+**Multi-label queue (frontend-only):**
+- Queue is an in-memory array of `{ id, name, thumbnailDataURL, canvasJSON }` items
+- "Add to Queue" captures current canvas state + generates thumbnail via off-screen Fabric.js canvas
+- Horizontal scrollable thumbnail strip below the designer canvas
+- Drag-to-reorder using HTML5 drag and drop
+- Click thumbnail to load canvasJSON back onto main canvas for editing
+- "Print Queue" iterates items sequentially, POSTing each to `/print` with progress indicator
+- Stops on first error and reports which label failed
 
 **Frontend tab system:**
 - Tab bar in `index.html`: Photo | Designer

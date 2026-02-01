@@ -7,6 +7,8 @@
   let mediaDimensions = {};
   let gridSize = 20; // dots (~2.5mm at 203dpi)
   let snapEnabled = true;
+  let queue = []; // { id, name, thumbnailDataURL, canvasJSON }
+  let queueCounter = 0;
 
   const mediaLabels = {
     continuous58: '58mm continuous',
@@ -369,6 +371,190 @@
     }
   }
 
+  // ---- Queue ----
+
+  function generateThumbnail() {
+    // Use the main canvas's current state directly for the thumbnail
+    const thumbWidth = 120;
+    const scale = thumbWidth / canvasWidth;
+    const thumbHeight = Math.round(canvasHeight * scale);
+    const dataURL = canvas.toDataURL({ format: 'png', multiplier: scale });
+    // Scale down via an offscreen canvas for crisp result
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const thumbEl = document.createElement('canvas');
+        thumbEl.width = thumbWidth;
+        thumbEl.height = thumbHeight;
+        const ctx = thumbEl.getContext('2d');
+        ctx.drawImage(img, 0, 0, thumbWidth, thumbHeight);
+        resolve(thumbEl.toDataURL('image/png'));
+      };
+      img.src = dataURL;
+    });
+  }
+
+  async function addToQueue() {
+    if (!canvas) return;
+    queueCounter++;
+    const canvasJSON = canvas.toJSON();
+    const thumbnailDataURL = await generateThumbnail();
+    const item = {
+      id: 'q_' + Date.now() + '_' + queueCounter,
+      name: 'Label ' + queueCounter,
+      thumbnailDataURL,
+      canvasJSON,
+    };
+    queue.push(item);
+    renderQueue();
+    setDesignerStatus('Added to queue', 'ok');
+  }
+
+  function removeFromQueue(id) {
+    queue = queue.filter((item) => item.id !== id);
+    renderQueue();
+  }
+
+  function clearQueue() {
+    if (queue.length === 0) return;
+    if (!confirm('Clear all ' + queue.length + ' items from queue?')) return;
+    queue = [];
+    renderQueue();
+  }
+
+  function loadFromQueue(id) {
+    const item = queue.find((q) => q.id === id);
+    if (!item) return;
+    canvas.loadFromJSON(item.canvasJSON, () => {
+      canvas.renderAll();
+      setDesignerStatus('Loaded: ' + item.name, 'ok');
+    });
+  }
+
+  function renderQueue() {
+    const strip = $('#dQueueStrip');
+    const countEl = $('#dQueueCount');
+    const printBtn = $('#dPrintQueue');
+    const clearBtn = $('#dClearQueue');
+    if (!strip) return;
+
+    countEl.textContent = '(' + queue.length + ')';
+    printBtn.disabled = queue.length === 0;
+    clearBtn.disabled = queue.length === 0;
+
+    strip.innerHTML = '';
+    queue.forEach((item, idx) => {
+      const el = document.createElement('div');
+      el.className = 'queue-item';
+      el.draggable = true;
+      el.dataset.queueId = item.id;
+      el.dataset.queueIdx = idx;
+
+      const img = document.createElement('img');
+      img.src = item.thumbnailDataURL;
+      img.alt = item.name;
+
+      const name = document.createElement('div');
+      name.className = 'queue-item-name';
+      name.textContent = item.name;
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'queue-item-remove';
+      removeBtn.textContent = '\u00d7';
+      removeBtn.title = 'Remove';
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeFromQueue(item.id);
+      });
+
+      el.appendChild(img);
+      el.appendChild(name);
+      el.appendChild(removeBtn);
+
+      // Click to load
+      el.addEventListener('click', () => loadFromQueue(item.id));
+
+      // Drag events
+      el.addEventListener('dragstart', (e) => {
+        el.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(idx));
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+        strip.querySelectorAll('.queue-item').forEach((q) => q.classList.remove('drag-over'));
+      });
+      el.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        el.classList.add('drag-over');
+      });
+      el.addEventListener('dragleave', () => {
+        el.classList.remove('drag-over');
+      });
+      el.addEventListener('drop', (e) => {
+        e.preventDefault();
+        el.classList.remove('drag-over');
+        const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+        const toIdx = idx;
+        if (fromIdx === toIdx) return;
+        const [moved] = queue.splice(fromIdx, 1);
+        queue.splice(toIdx, 0, moved);
+        renderQueue();
+      });
+
+      strip.appendChild(el);
+    });
+  }
+
+  function canvasJSONToBlob(canvasJSON) {
+    return new Promise((resolve) => {
+      // Load JSON onto the main canvas temporarily, export, then we don't restore
+      // (caller is iterating the queue so each load is intentional)
+      canvas.loadFromJSON(canvasJSON, () => {
+        canvas.renderAll();
+        const dataURL = canvas.toDataURL({ format: 'png', multiplier: 1 });
+        fetch(dataURL).then((r) => r.blob()).then(resolve);
+      });
+    });
+  }
+
+  async function printQueue() {
+    if (queue.length === 0) return;
+    const progressEl = $('#dQueueProgress');
+    const printBtn = $('#dPrintQueue');
+    printBtn.disabled = true;
+    progressEl.hidden = false;
+
+    const config = window.getPublicConfig ? window.getPublicConfig() : null;
+    const media = getSelectedMedia();
+    const lang = (config && config.default_lang) || 'EPL';
+
+    for (let i = 0; i < queue.length; i++) {
+      const item = queue[i];
+      progressEl.textContent = 'Printing ' + (i + 1) + '/' + queue.length + ': ' + item.name;
+      progressEl.className = 'status';
+      try {
+        const blob = await canvasJSONToBlob(item.canvasJSON);
+        const formData = new FormData();
+        formData.append('file', blob, 'design.png');
+        formData.append('media', media);
+        formData.append('lang', lang);
+        const res = await fetch('/print', { method: 'POST', body: formData });
+        if (!res.ok) throw new Error('Print failed');
+      } catch (e) {
+        progressEl.textContent = 'Failed on ' + item.name + ' (' + (i + 1) + '/' + queue.length + '): ' + e.message;
+        progressEl.className = 'status err';
+        printBtn.disabled = false;
+        return;
+      }
+    }
+
+    progressEl.textContent = 'All ' + queue.length + ' labels printed';
+    progressEl.className = 'status ok';
+    printBtn.disabled = false;
+  }
+
   // ---- Initialization ----
 
   function setupDesigner() {
@@ -390,6 +576,10 @@
     $('#dPrint').addEventListener('click', doPrint);
     $('#dSave').addEventListener('click', saveTemplate);
     $('#dLoadList').addEventListener('click', loadTemplateList);
+
+    $('#dAddQueue').addEventListener('click', addToQueue);
+    $('#dPrintQueue').addEventListener('click', printQueue);
+    $('#dClearQueue').addEventListener('click', clearQueue);
 
     $('#dFontSize').addEventListener('change', applyFontSize);
     $('#dMedia').addEventListener('change', () => {
