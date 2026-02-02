@@ -80,10 +80,28 @@
             <button id="dAddText" class="secondary">Add Text</button>
             <button id="dAddImage" class="secondary">Add Image</button>
             <input type="file" id="dImageInput" accept="image/*" hidden>
+            <select id="dAddShape" class="toolbar-select">
+                <option value="" disabled selected>Shape</option>
+                <option value="rect">Rectangle</option>
+                <option value="circle">Circle</option>
+                <option value="line">Line</option>
+            </select>
+            <label class="toolbar-label">
+                Font
+                <select id="dFontFamily" class="toolbar-select">
+                    <option value="Arial">Arial</option>
+                    <option value="Courier New">Courier</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Impact">Impact</option>
+                    <option value="Times New Roman">Times</option>
+                    <option value="Comic Sans MS">Comic Sans</option>
+                </select>
+            </label>
             <label class="toolbar-label">
                 Size
                 <input type="number" id="dFontSize" value="40" min="8" max="300" step="1" class="toolbar-input">
             </label>
+            <button id="dFillToggle" class="secondary" title="Toggle fill color">Fill: Black</button>
             <label class="toolbar-label">
                 Media
                 <select id="dMedia" class="toolbar-select"></select>
@@ -94,6 +112,8 @@
                 <input type="number" id="dGridSize" value="20" min="5" max="100" step="5" class="toolbar-input">
             </label>
             <div style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap;">
+                <button id="dBringFwd" class="secondary" title="Bring Forward">↑</button>
+                <button id="dSendBack" class="secondary" title="Send Backward">↓</button>
                 <button id="dDelete" class="secondary">Delete</button>
                 <button id="dAddQueue" class="secondary">Add to Queue</button>
                 <button id="dPreview" class="secondary">Preview</button>

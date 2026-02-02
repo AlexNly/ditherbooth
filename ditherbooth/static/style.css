@@ -317,10 +317,10 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.queue-item-dup,
 .queue-item-remove {
   position: absolute;
   top: 2px;
-  right: 2px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 50%;
@@ -333,6 +333,9 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   cursor: pointer;
   padding: 0;
 }
+.queue-item-dup { left: 2px; }
+.queue-item-dup:hover { color: var(--accent); border-color: var(--accent); }
+.queue-item-remove { right: 2px; }
 .queue-item-remove:hover { color: var(--err); border-color: var(--err); }
 
 @media (max-width: 520px) {

@@ -9,6 +9,7 @@
   let snapEnabled = true;
   let queue = []; // { id, name, thumbnailDataURL, canvasJSON }
   let queueCounter = 0;
+  let currentFill = '#000000'; // black/white toggle
 
   const mediaLabels = {
     continuous58: '58mm continuous',
@@ -76,6 +77,10 @@
     }
   }
 
+  function isTouchDevice() {
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  }
+
   function initCanvas() {
     if (canvas) return;
     canvas = new fabric.Canvas('designerCanvas', {
@@ -84,6 +89,17 @@
       height: canvasHeight,
       selection: true,
     });
+    // Touch optimization: larger handles for mobile
+    if (isTouchDevice()) {
+      fabric.Object.prototype.set({
+        cornerSize: 20,
+        touchCornerSize: 40,
+        cornerStyle: 'circle',
+        transparentCorners: false,
+        cornerColor: '#4f8cff',
+        borderColor: '#4f8cff',
+      });
+    }
     drawGrid();
     setupSnapping();
     fitCanvasToViewport();
@@ -158,7 +174,7 @@
   }
 
   function setupSnapping() {
-    const SNAP_THRESHOLD = 8;
+    const SNAP_THRESHOLD = isTouchDevice() ? 14 : 8;
 
     canvas.on('object:moving', (e) => {
       if (!snapEnabled) return;
@@ -262,12 +278,13 @@
 
   function addText() {
     const fontSize = parseInt($('#dFontSize').value, 10) || 40;
+    const fontFamily = $('#dFontFamily') ? $('#dFontFamily').value : 'Arial';
     const text = new fabric.IText('Label Text', {
       left: 50,
       top: 50,
       fontSize: fontSize,
-      fontFamily: 'Arial',
-      fill: '#000000',
+      fontFamily: fontFamily,
+      fill: currentFill,
     });
     canvas.add(text);
     canvas.setActiveObject(text);
@@ -303,11 +320,78 @@
     input.value = '';
   }
 
+  // ---- Shapes tool ----
+
+  function addShape(type) {
+    let shape;
+    const opts = { stroke: currentFill, strokeWidth: 2, fill: 'transparent', left: 50, top: 50 };
+    if (type === 'rect') {
+      shape = new fabric.Rect({ ...opts, width: 120, height: 80 });
+    } else if (type === 'circle') {
+      shape = new fabric.Circle({ ...opts, radius: 50 });
+    } else if (type === 'line') {
+      shape = new fabric.Line([50, 50, 200, 50], {
+        stroke: currentFill,
+        strokeWidth: 2,
+        selectable: true,
+        evented: true,
+      });
+    }
+    if (shape) {
+      canvas.add(shape);
+      canvas.setActiveObject(shape);
+      canvas.renderAll();
+    }
+  }
+
+  // ---- Fill toggle ----
+
+  function toggleFill() {
+    currentFill = currentFill === '#000000' ? '#ffffff' : '#000000';
+    const btn = $('#dFillToggle');
+    if (btn) btn.textContent = currentFill === '#000000' ? 'Fill: Black' : 'Fill: White';
+    // Apply to selected object
+    const obj = canvas.getActiveObject();
+    if (obj) {
+      if (obj.type === 'i-text') {
+        obj.set('fill', currentFill);
+      } else if (obj.type === 'line' || obj.stroke) {
+        obj.set('stroke', currentFill);
+      }
+      canvas.renderAll();
+    }
+  }
+
+  // ---- Object layering ----
+
+  function bringForward() {
+    const obj = canvas.getActiveObject();
+    if (obj) { canvas.bringForward(obj); canvas.renderAll(); }
+  }
+
+  function sendBackward() {
+    const obj = canvas.getActiveObject();
+    if (!obj) return;
+    canvas.sendBackwards(obj);
+    // Don't send behind grid lines
+    const gridLines = canvas.getObjects().filter(o => o._isGrid);
+    if (gridLines.length > 0) {
+      const objIdx = canvas.getObjects().indexOf(obj);
+      const lastGridIdx = Math.max(...gridLines.map(g => canvas.getObjects().indexOf(g)));
+      if (objIdx <= lastGridIdx) {
+        canvas.moveTo(obj, lastGridIdx + 1);
+      }
+    }
+    canvas.renderAll();
+  }
+
   // Update font size when selection changes
   function onSelectionChanged() {
     const obj = canvas.getActiveObject();
     if (obj && obj.type === 'i-text') {
       $('#dFontSize').value = Math.round(obj.fontSize);
+      const fontSel = $('#dFontFamily');
+      if (fontSel) fontSel.value = obj.fontFamily || 'Arial';
     }
   }
 
@@ -316,6 +400,15 @@
     if (obj && obj.type === 'i-text') {
       const size = parseInt($('#dFontSize').value, 10) || 40;
       obj.set('fontSize', size);
+      canvas.renderAll();
+    }
+  }
+
+  function applyFontFamily() {
+    const obj = canvas.getActiveObject();
+    if (obj && obj.type === 'i-text') {
+      const family = $('#dFontFamily').value;
+      obj.set('fontFamily', family);
       canvas.renderAll();
     }
   }
@@ -554,6 +647,23 @@
     renderQueue();
   }
 
+  function duplicateInQueue(id) {
+    const item = queue.find((q) => q.id === id);
+    if (!item) return;
+    queueCounter++;
+    const copy = {
+      id: 'q_' + Date.now() + '_' + queueCounter,
+      name: item.name + ' copy',
+      thumbnailDataURL: item.thumbnailDataURL,
+      canvasJSON: JSON.parse(JSON.stringify(item.canvasJSON)),
+    };
+    // Insert after the original
+    const idx = queue.indexOf(item);
+    queue.splice(idx + 1, 0, copy);
+    renderQueue();
+    setDesignerStatus('Duplicated: ' + item.name, 'ok');
+  }
+
   function clearQueue() {
     if (queue.length === 0) return;
     if (!confirm('Clear all ' + queue.length + ' items from queue?')) return;
@@ -597,6 +707,15 @@
       name.className = 'queue-item-name';
       name.textContent = item.name;
 
+      const dupBtn = document.createElement('button');
+      dupBtn.className = 'queue-item-dup';
+      dupBtn.textContent = '⧉';
+      dupBtn.title = 'Duplicate';
+      dupBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        duplicateInQueue(item.id);
+      });
+
       const removeBtn = document.createElement('button');
       removeBtn.className = 'queue-item-remove';
       removeBtn.textContent = '\u00d7';
@@ -608,6 +727,7 @@
 
       el.appendChild(img);
       el.appendChild(name);
+      el.appendChild(dupBtn);
       el.appendChild(removeBtn);
 
       // Click to load
@@ -710,6 +830,13 @@
     $('#dAddText').addEventListener('click', addText);
     $('#dAddImage').addEventListener('click', () => $('#dImageInput').click());
     $('#dImageInput').addEventListener('change', addImage);
+    $('#dAddShape').addEventListener('change', (e) => {
+      if (e.target.value) { addShape(e.target.value); e.target.selectedIndex = 0; }
+    });
+    $('#dFontFamily').addEventListener('change', applyFontFamily);
+    $('#dFillToggle').addEventListener('click', toggleFill);
+    $('#dBringFwd').addEventListener('click', bringForward);
+    $('#dSendBack').addEventListener('click', sendBackward);
     $('#dDelete').addEventListener('click', deleteSelected);
     $('#dGrid').addEventListener('click', toggleGrid);
     $('#dGridSize').addEventListener('change', updateGridSize);

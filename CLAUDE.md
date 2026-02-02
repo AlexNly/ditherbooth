@@ -214,6 +214,28 @@ cancel -a Zebra_LP2844     # Cancel all jobs
 - Guide lines are temporary (`_isSnapGuide`), cleared on mouse release
 - `canvasToCleanJSON()` strips grid lines from serialization (templates and queue)
 
+**Shapes tool:**
+- Toolbar dropdown: Rectangle, Circle, Line
+- Shapes created with stroke only (no fill), using current fill color
+- Standard Fabric.js objects — movable, scalable, deletable
+
+**Font picker and fill color:**
+- Font dropdown: Arial, Courier, Georgia, Impact, Times, Comic Sans
+- Fill toggle button switches between black and white (`currentFill` state)
+- Applies to new objects and updates selected object on toggle
+
+**Object layering:**
+- "Bring Forward" (↑) and "Send Backward" (↓) buttons in toolbar
+- Send backward prevents objects from going behind grid lines
+
+**Queue duplication:**
+- Duplicate button (⧉) on each queue thumbnail, next to remove (×)
+- Deep-copies canvasJSON and reuses thumbnail, inserts after original
+
+**Touch optimization:**
+- Larger Fabric.js selection handles on touch devices (`cornerSize: 20`, `touchCornerSize: 40`)
+- Increased snap threshold (14px vs 8px) on touch for easier snapping
+
 ## Key implementation details
 
 ### Image resizing strategy (ditherbooth/imaging/process.py:5-39)
