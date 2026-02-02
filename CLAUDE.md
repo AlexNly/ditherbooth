@@ -202,6 +202,18 @@ cancel -a Zebra_LP2844     # Cancel all jobs
 - `window.initDesignerV2()` called after DOMContentLoaded + config loaded
 - `window.onDesignerTabVisible()` called when designer tab becomes visible (for canvas resize)
 
+**Image elements:**
+- "Add Image" button triggers hidden file input, reads file as dataURL, creates `fabric.Image`
+- Image auto-scaled to fit within 80% of canvas bounds, centered
+- Images are regular Fabric.js objects — movable, scalable, deletable via Delete button
+
+**Smart snapping (PowerPoint-style guidelines):**
+- On `object:moving`, collects snap targets from canvas edges, canvas center, and other objects' edges/centers
+- Snaps within 8px threshold, draws dashed blue guide lines at snap points
+- Falls back to grid snapping when no smart snap hits
+- Guide lines are temporary (`_isSnapGuide`), cleared on mouse release
+- `canvasToCleanJSON()` strips grid lines from serialization (templates and queue)
+
 ## Key implementation details
 
 ### Image resizing strategy (ditherbooth/imaging/process.py:5-39)

@@ -126,15 +126,100 @@
     canvas.renderAll();
   }
 
+  function clearSnapGuides() {
+    canvas.getObjects('line').forEach(o => {
+      if (o._isSnapGuide) canvas.remove(o);
+    });
+  }
+
+  function getSnapTargets(exclude) {
+    const hTargets = [0, canvasWidth / 2, canvasWidth];
+    const vTargets = [0, canvasHeight / 2, canvasHeight];
+    canvas.getObjects().forEach(o => {
+      if (o === exclude || o._isGrid || o._isSnapGuide) return;
+      const bound = o.getBoundingRect(true);
+      hTargets.push(bound.left, bound.left + bound.width / 2, bound.left + bound.width);
+      vTargets.push(bound.top, bound.top + bound.height / 2, bound.top + bound.height);
+    });
+    return { hTargets, vTargets };
+  }
+
+  function drawSnapGuide(x1, y1, x2, y2) {
+    const line = new fabric.Line([x1, y1, x2, y2], {
+      stroke: '#4f8cff',
+      strokeWidth: 1,
+      strokeDashArray: [4, 3],
+      selectable: false,
+      evented: false,
+      excludeFromExport: true,
+    });
+    line._isSnapGuide = true;
+    canvas.add(line);
+  }
+
   function setupSnapping() {
+    const SNAP_THRESHOLD = 8;
+
     canvas.on('object:moving', (e) => {
       if (!snapEnabled) return;
       const obj = e.target;
-      obj.set({
-        left: Math.round(obj.left / gridSize) * gridSize,
-        top: Math.round(obj.top / gridSize) * gridSize,
-      });
+      clearSnapGuides();
+
+      const bound = obj.getBoundingRect(true);
+      const objEdges = {
+        left: obj.left,
+        centerX: obj.left + bound.width / 2,
+        right: obj.left + bound.width,
+        top: obj.top,
+        centerY: obj.top + bound.height / 2,
+        bottom: obj.top + bound.height,
+      };
+
+      const { hTargets, vTargets } = getSnapTargets(obj);
+      let snappedX = false;
+      let snappedY = false;
+
+      // Check horizontal snap (left, center, right of moving object vs targets)
+      for (const edge of ['left', 'centerX', 'right']) {
+        if (snappedX) break;
+        for (const target of hTargets) {
+          const diff = objEdges[edge] - target;
+          if (Math.abs(diff) < SNAP_THRESHOLD) {
+            obj.set('left', obj.left - diff);
+            drawSnapGuide(target, 0, target, canvasHeight);
+            snappedX = true;
+            break;
+          }
+        }
+      }
+
+      // Check vertical snap (top, center, bottom of moving object vs targets)
+      for (const edge of ['top', 'centerY', 'bottom']) {
+        if (snappedY) break;
+        for (const target of vTargets) {
+          const diff = objEdges[edge] - target;
+          if (Math.abs(diff) < SNAP_THRESHOLD) {
+            obj.set('top', obj.top - diff);
+            drawSnapGuide(0, target, canvasWidth, target);
+            snappedY = true;
+            break;
+          }
+        }
+      }
+
+      // Fall back to grid snapping if no smart snap hit
+      if (!snappedX) {
+        obj.set('left', Math.round(obj.left / gridSize) * gridSize);
+      }
+      if (!snappedY) {
+        obj.set('top', Math.round(obj.top / gridSize) * gridSize);
+      }
     });
+
+    canvas.on('object:modified', () => {
+      clearSnapGuides();
+    });
+
     canvas.on('object:scaling', (e) => {
       if (!snapEnabled) return;
       const obj = e.target;
@@ -162,6 +247,17 @@
     }
   }
 
+  // ---- Clean JSON (excludes grid lines) ----
+
+  function canvasToCleanJSON() {
+    const grid = canvas.getObjects().filter(o => o._isGrid);
+    grid.forEach(o => canvas.remove(o));
+    const json = canvas.toJSON();
+    grid.forEach(o => canvas.add(o));
+    grid.forEach(o => canvas.sendToBack(o));
+    return json;
+  }
+
   // ---- Text tool ----
 
   function addText() {
@@ -176,6 +272,35 @@
     canvas.add(text);
     canvas.setActiveObject(text);
     canvas.renderAll();
+  }
+
+  // ---- Image tool ----
+
+  function addImage() {
+    const input = $('#dImageInput');
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      fabric.Image.fromURL(e.target.result, (img) => {
+        // Scale to fit within 80% of canvas
+        const maxW = canvasWidth * 0.8;
+        const maxH = canvasHeight * 0.8;
+        const scale = Math.min(1, maxW / img.width, maxH / img.height);
+        img.set({
+          left: Math.round((canvasWidth - img.width * scale) / 2),
+          top: Math.round((canvasHeight - img.height * scale) / 2),
+          scaleX: scale,
+          scaleY: scale,
+        });
+        canvas.add(img);
+        canvas.setActiveObject(img);
+        canvas.renderAll();
+      });
+    };
+    reader.readAsDataURL(file);
+    // Reset input so the same file can be re-selected
+    input.value = '';
   }
 
   // Update font size when selection changes
@@ -206,10 +331,22 @@
 
   // ---- Export to PNG ----
 
+  function removeHelpers() {
+    const helpers = canvas.getObjects().filter(o => o._isGrid || o._isSnapGuide);
+    helpers.forEach(o => canvas.remove(o));
+    return helpers;
+  }
+
+  function restoreHelpers(helpers) {
+    helpers.forEach(o => canvas.add(o));
+    helpers.filter(o => o._isGrid).forEach(o => canvas.sendToBack(o));
+  }
+
   function canvasToBlob() {
     return new Promise((resolve) => {
-      // Export at full resolution (no viewport transform)
+      const helpers = removeHelpers();
       const dataURL = canvas.toDataURL({ format: 'png', multiplier: 1 });
+      restoreHelpers(helpers);
       fetch(dataURL).then((r) => r.blob()).then(resolve);
     });
   }
@@ -271,7 +408,7 @@
     const name = prompt('Template name:');
     if (!name || !name.trim()) return;
     try {
-      const canvasJson = canvas.toJSON();
+      const canvasJson = canvasToCleanJSON();
       const res = await fetch('/api/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -378,7 +515,9 @@
     const thumbWidth = 120;
     const scale = thumbWidth / canvasWidth;
     const thumbHeight = Math.round(canvasHeight * scale);
+    const helpers = removeHelpers();
     const dataURL = canvas.toDataURL({ format: 'png', multiplier: scale });
+    restoreHelpers(helpers);
     // Scale down via an offscreen canvas for crisp result
     return new Promise((resolve) => {
       const img = new Image();
@@ -397,7 +536,7 @@
   async function addToQueue() {
     if (!canvas) return;
     queueCounter++;
-    const canvasJSON = canvas.toJSON();
+    const canvasJSON = canvasToCleanJSON();
     const thumbnailDataURL = await generateThumbnail();
     const item = {
       id: 'q_' + Date.now() + '_' + queueCounter,
@@ -569,6 +708,8 @@
 
     // Toolbar events
     $('#dAddText').addEventListener('click', addText);
+    $('#dAddImage').addEventListener('click', () => $('#dImageInput').click());
+    $('#dImageInput').addEventListener('change', addImage);
     $('#dDelete').addEventListener('click', deleteSelected);
     $('#dGrid').addEventListener('click', toggleGrid);
     $('#dGridSize').addEventListener('change', updateGridSize);
