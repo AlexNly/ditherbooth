@@ -38,3 +38,11 @@ notebooks/out/
 .server.pid
 *.pid
 ditherbooth_config.json
+server_config.json
+
+# Environment / secrets
+.env
+
+# Printer command files
+*.epl
+*.zpl

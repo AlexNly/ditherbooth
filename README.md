@@ -7,67 +7,75 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
-Turn photos into crisp 1‑bit dithered prints on a Zebra label printer.
+A free, browser-based photo booth and label designer for any EPL/ZPL thermal printer.
 
 <p align="center">
-  <img src="static/examples/original.png" alt="Original example" width="280"/>
-  <img src="static/examples/final_1bit_463.png" alt="Processed 1-bit" width="280"/>
+  <img src="ditherbooth/static/examples/original.png" alt="Original photo" width="280"/>
+  <img src="ditherbooth/static/examples/final_1bit_463.png" alt="Dithered 1-bit output" width="280"/>
 </p>
 
-Original (left) and final 1‑bit dithered image (right). See [Image processing script](#image-processing-script) to reproduce the example locally.
+## What is this?
 
-Ditherbooth is a small FastAPI service and single-page app that turns uploaded photos into 1‑bit dithered bitmaps and prints them on a Zebra LP2844 label printer.
+Ditherbooth turns any phone or computer into a photo booth for thermal label printers. Upload or snap a photo, and it gets converted to a crisp 1-bit dithered bitmap and printed instantly. It also includes a full label designer for creating custom labels with text, images, and shapes. Works with any EPL2 or ZPL compatible printer — Zebra LP2844, GK420d, ZD220, and many others.
 
-## Table of Contents
+## Screenshots
 
-- [Features](#features)
-- [Quick Start](#quick-start)
-- [Troubleshooting](#troubleshooting)
-- [Developer Settings and Test Mode](#developer-settings-and-test-mode)
-- [API Test with cURL](#api-test-with-curl)
-- [Media Presets](#media-presets)
-- [Image Processing Script](#image-processing-script)
-- [Formatting and Linting](#formatting-and-linting)
-- [Testing](#testing)
-- [Compiling](#compiling)
-- [Notes](#notes)
-- [Code Coverage](#code-coverage)
-- [Contributing](#contributing)
-- [License](#license)
+<p align="center">
+  <img src="docs/screenshots/photo-tab.png" alt="Photo booth flow" width="600"/>
+</p>
+<p align="center"><em>Photo flow — upload or capture, preview the dithered output, print</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/designer-tab.png" alt="Label designer" width="600"/>
+</p>
+<p align="center"><em>Label designer — text, images, shapes, templates, and multi-label queue</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/mobile-photo.png" alt="Mobile view" width="280"/>
+</p>
+<p align="center"><em>Works on any device — open it on your phone over the local network</em></p>
 
 ## Features
 
-* Upload or capture images via the web UI
-* Convert photos to 1‑bit dithered bitmaps using Pillow
-* Encode to EPL2 or ZPL and send raw jobs to CUPS
-* Configure media widths and printer language
-* Optional test mode to skip actual printing
+**Photo booth**
+- Upload or capture photos from any device
+- Floyd-Steinberg dithering to 1-bit black & white
+- Live preview before printing
+- Multiple media sizes (continuous rolls and fixed labels)
+
+**Label designer**
+- Fabric.js canvas editor with text, images, and shapes
+- Font picker, fill toggle, object layering
+- Smart snapping guides (PowerPoint-style)
+- Save and load templates
+- Multi-label print queue with drag-to-reorder
+
+**Printer support**
+- EPL2 and ZPL encoding
+- Prints via CUPS — works on macOS and Linux
+- Compatible with any EPL/ZPL thermal printer
+- Test mode for development without a printer
+- Kiosk mode to lock down the UI
 
 ## Quick Start
 
 ### Prerequisites
 
-* Python 3.9+
-* [CUPS](https://www.cups.org/) with a printer queue named `Zebra_LP2844`
-* Zebra LP2844 or LP2844‑Z printer connected via USB
-* `DITHERBOOTH_PRINTER` environment variable (optional) to override the CUPS queue name; defaults to `Zebra_LP2844`
+- Python 3.9+
+- [CUPS](https://www.cups.org/) with a configured printer queue
+- Any EPL2/ZPL thermal printer connected via USB
 
-#### Create a printer queue
+### Set up your printer
 
-**macOS:**
-
-macOS no longer supports raw CUPS queues. Use the EPL2 driver instead:
+**macOS** (no raw queue support — use the EPL2 driver):
 
 ```bash
-# Find your printer's USB device (note the serial number)
-lpinfo -v | grep -i zebra
+lpinfo -v | grep -i zebra   # Find your printer's USB device
 
-# Create printer with EPL2 driver (update serial number to match yours)
 sudo lpadmin -p Zebra_LP2844 -E \
   -v "usb://Zebra/LP2844?serial=YOUR_SERIAL_NUMBER" \
   -m drv:///sample.drv/zebraep2.ppd
 
-# Enable and accept jobs
 cupsenable Zebra_LP2844
 cupsaccept Zebra_LP2844
 ```
@@ -78,232 +86,99 @@ cupsaccept Zebra_LP2844
 sudo lpadmin -p Zebra_LP2844 -E -v usb://Zebra/LP2844 -m raw
 ```
 
-Verify the queue:
-
-```bash
-lpstat -p Zebra_LP2844
-```
-
-#### Smoke-test the printer
-
-Print a simple label to confirm the queue works:
-
-```bash
-echo -e "N\nq400\nQ200,24\nA50,50,0,3,1,1,N,\"Hello\"\nP1" | lpr -P Zebra_LP2844
-```
-
-If successful, the printer should print a small label with "Hello" text.
-
-### Installation
+### Install and run
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-# For development and testing
-pip install -r requirements-dev.txt
-```
-
-### Run the development server
-
-```bash
 make dev
 ```
 
-Visit [http://localhost:8000](http://localhost:8000) and upload or capture a photo. Choose media width and printer language and press **Print** to send the job to the printer.
+Open [http://localhost:8000](http://localhost:8000) and print something.
 
-#### Access on your network
-
-Run the dev server bound to your LAN IP:
+### Access from your phone
 
 ```bash
-make dev HOST=0.0.0.0 PORT=8000
+make dev HOST=0.0.0.0
 ```
 
-Find your IP:
+Then open `http://<your-ip>:8000` on your phone (`ipconfig getifaddr en0` on macOS, `hostname -I` on Linux).
 
-* macOS: `ipconfig getifaddr en0`
-* Linux: `hostname -I`
+### No printer? No problem
 
-Open `http://<your-ip>:8000` on your phone. Use the gear icon (Dev Settings) to enable Test Mode so no printer is required.
-
-## Troubleshooting
-
-### Printer shows as paused or disabled
-
-If the printer appears paused in System Settings or `lpstat` shows it as disabled:
-
-```bash
-cupsenable Zebra_LP2844    # Enable the printer
-cupsaccept Zebra_LP2844    # Accept jobs
-lpstat -p Zebra_LP2844     # Verify status
-```
-
-### Print jobs are stuck in queue
-
-```bash
-cancel -a Zebra_LP2844     # Cancel all pending jobs
-lpstat -o                  # Check queue is empty
-```
-
-### "Unable to send data to printer" error
-
-This usually means the printer lost communication. Try:
-
-1. Check USB cable is connected
-2. Verify printer is powered on and shows a green ready light
-3. Check the printer appears in USB devices:
-   ```bash
-   lpinfo -v | grep -i zebra
-   ```
-4. If the device URI is wrong or shows `/dev/null`, reconfigure:
-   ```bash
-   # Find the correct USB device
-   lpinfo -v | grep -i zebra
-
-   # Update the printer (use your serial number)
-   sudo lpadmin -p Zebra_LP2844 -v "usb://Zebra/LP2844?serial=YOUR_SERIAL"
-
-   # Re-enable
-   cupsenable Zebra_LP2844
-   cupsaccept Zebra_LP2844
-   ```
-
-### Web interface returns "Printer error" (502)
-
-The app returns HTTP 502 when CUPS cannot communicate with the printer. Check:
-
-1. Printer status: `lpstat -p Zebra_LP2844`
-2. Recent CUPS errors: `tail -20 /var/log/cups/error_log`
-3. Follow steps above to enable printer and clear stuck jobs
-
-### Development without a printer
-
-Use test mode to develop without a physical printer:
+Enable test mode via the gear icon in the UI (password: `dev`), or:
 
 ```bash
 curl -X PUT -H "X-Dev-Password: dev" -H "Content-Type: application/json" \
   -d '{"test_mode": true}' http://localhost:8000/api/dev/settings
 ```
 
-Or enable it through the web UI using the gear icon (Dev Settings) with password `dev`.
+## Configuration
 
-## Developer settings and test mode
+Settings are persisted to a JSON config file and accessible via a password-protected API.
 
-The app exposes a small password-protected settings API to make the frontend configurable without exposing options to end users. These settings are persisted to a JSON file (`ditherbooth_config.json` by default) and are used both by the UI and the print endpoint.
+| Setting | Type | Description |
+|---------|------|-------------|
+| `test_mode` | bool | Process images without printing |
+| `default_media` | string | Default media preset |
+| `default_lang` | string | `EPL` or `ZPL` |
+| `lock_controls` | bool | Hide selectors for kiosk mode |
+| `printer_name` | string | Override CUPS queue name |
+| `epl_darkness` | int (0-15) | EPL darkness setting |
+| `epl_speed` | int (1-6) | EPL speed setting |
 
-* `DITHERBOOTH_DEV_PASSWORD`: Password required for the settings API (default: `dev` for local/testing). Set this in production.
-* `DITHERBOOTH_CONFIG_PATH`: Optional path to the settings JSON file. Useful in tests or deployments.
+**Environment variables:**
 
-Endpoints:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DITHERBOOTH_PRINTER` | `Zebra_LP2844` | CUPS queue name |
+| `DITHERBOOTH_DEV_PASSWORD` | `dev` | Password for settings API |
+| `DITHERBOOTH_CONFIG_PATH` | `~/.config/ditherbooth/config.json` | Config file location |
 
-* `GET /api/public-config`: Public, returns defaults and whether to lock controls in the UI.
-* `GET /api/dev/settings`: Requires header `X-Dev-Password`. Returns full config.
-* `PUT /api/dev/settings`: Requires header `X-Dev-Password`. Accepts JSON fields:
-  * `test_mode` (bool) — if true, the `/print` endpoint will process the image but skip spooling to the printer and return `{status:"ok", mode:"test"}`.
-  * `default_media` (string: one of `continuous58`, `continuous80`, `label100x150`, `label55x30`)
-  * `default_lang` (string: `EPL` or `ZPL`)
-  * `lock_controls` (bool) — hides media/language selectors in the UI for kiosk usage.
-  * `printer_name` (string, optional) — override the printer queue name used by the backend (otherwise falls back to `DITHERBOOTH_PRINTER` env, then `Zebra_LP2844`).
+**API endpoints:**
 
-## API test with cURL
+- `GET /api/public-config` — public config (media dimensions, defaults)
+- `GET /api/dev/settings` — full config (requires `X-Dev-Password` header)
+- `PUT /api/dev/settings` — update config (requires `X-Dev-Password` header)
 
-Send an image directly to the `/print` endpoint without the UI:
+## API
 
 ```bash
-curl -F "file=@path/to/image.jpg" \
-     -F media=continuous58 \
-     -F lang=EPL \
-     http://localhost:8000/print
+# Print an image
+curl -F "file=@photo.jpg" -F media=continuous58 -F lang=EPL http://localhost:8000/print
+
+# Preview (returns dithered PNG)
+curl -F "file=@photo.jpg" -F media=continuous58 http://localhost:8000/preview -o preview.png
 ```
-
-A JSON response of `{ "status": "ok" }` indicates the job was submitted.
-
-If test mode is enabled via settings, the response will include `{ "status": "ok", "mode": "test", ... }` and no job is sent to the printer.
 
 ## Media presets
 
-Available media widths (dots):
+| Preset | Width (dots) | Height | Type |
+|--------|-------------|--------|------|
+| `continuous58` | 463 | auto | Continuous roll |
+| `continuous80` | 640 | auto | Continuous roll (default) |
+| `label100x150` | 800 | 1200 | Fixed label |
+| `label55x30` | 440 | 240 | Fixed label |
+| `label50x30` | 400 | 240 | Fixed label |
 
-* `continuous58` → 463
-* `continuous80` → 640 (default)
-* `label100x150` → 800
-* `label55x30` → 440
-
-You can change the default in the Dev Settings modal, or via the API.
-
-## Image processing script
-
-* `notebooks/image_processing.py` (uses `# %%` cells)
-
-Run end-to-end (auto-picks an image in `notebooks/` if available):
-
-```bash
-python notebooks/image_processing.py
-```
-
-Examples:
-
-```bash
-# Use a specific image in notebooks/
-python notebooks/image_processing.py -i notebooks/your_image.png
-
-# Change printer width (dots)
-python notebooks/image_processing.py -i notebooks/your_image.png -w 463
-
-# Choose a custom output directory
-python notebooks/image_processing.py -i notebooks/your_image.png --out notebooks/out_custom
-```
-
-You can also open the script in VS Code/Jupyter and run the `# %%` cells interactively.
-
-Optional intermediate views used for illustration (not sent to the printer):
-
-<p>
-  <img src="notebooks/out/01_gray.png" alt="Grayscale" width="280"/>
-  <img src="notebooks/out/02_resized.png" alt="Resized to printer width" width="280"/>
-</p>
-
-## Formatting and linting
-
-Format the code with:
+## Development
 
 ```bash
 pip install -r requirements-dev.txt
-make format
+make format   # Black formatter
+pytest         # Run tests
 ```
 
-## Testing
+Camera capture requires HTTPS on non-localhost hosts. For LAN use, run behind a self-signed cert or [mkcert](https://github.com/FiloSottile/mkcert).
 
-Run the test suite:
+## Troubleshooting
 
-```bash
-pip install -r requirements-dev.txt
-pytest
-```
-
-## Compiling
-
-Check that the Python sources are syntactically valid:
-
-```bash
-python -m py_compile ditherbooth/app.py ditherbooth/imaging/process.py ditherbooth/printer/cups.py ditherbooth/printer/epl.py ditherbooth/printer/zpl.py
-```
-
-## Notes
-
-Camera capture in the browser requires HTTPS on non‑localhost hosts. When deploying on a LAN, run the service behind a self‑signed certificate or a local CA such as `mkcert`.
-
-## Code coverage
-
-This repository publishes test coverage to Codecov via GitHub Actions. The workflow runs `pytest --cov=. --cov-report=xml` and uploads `coverage.xml`.
-
-* Public repo: no token required.
-* Private repo: set `CODECOV_TOKEN` in repository secrets if needed.
+See [docs/troubleshooting.md](docs/troubleshooting.md) for printer setup issues, stuck jobs, and common errors.
 
 ## Contributing
 
-Pull requests are welcome! Please open an issue for major changes and ensure tests pass before submitting.
+Pull requests welcome. Please open an issue for major changes and ensure tests pass before submitting.
 
 ```bash
 make format
@@ -312,4 +187,4 @@ pytest
 
 ## License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
