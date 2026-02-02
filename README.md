@@ -21,19 +21,10 @@ Ditherbooth turns any phone or computer into a photo booth for thermal label pri
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/photo-tab.png" alt="Photo booth flow" width="600"/>
+  <img src="docs/screenshots/mobile-photo.png" alt="Photo booth on mobile" width="280"/>
+  <img src="docs/screenshots/designer-tab.png" alt="Label designer" width="400"/>
 </p>
-<p align="center"><em>Photo flow — upload or capture, preview the dithered output, print</em></p>
-
-<p align="center">
-  <img src="docs/screenshots/designer-tab.png" alt="Label designer" width="600"/>
-</p>
-<p align="center"><em>Label designer — text, images, shapes, templates, and multi-label queue</em></p>
-
-<p align="center">
-  <img src="docs/screenshots/mobile-photo.png" alt="Mobile view" width="280"/>
-</p>
-<p align="center"><em>Works on any device — open it on your phone over the local network</em></p>
+<p align="center"><em>Snap a photo and print it instantly (left) — design custom labels with templates and queue (right)</em></p>
 
 ## Features
 
