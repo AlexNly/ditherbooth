@@ -5,6 +5,8 @@
 
   let selectedFile = null;
   let publicConfig = null;
+  // Expose publicConfig for designer-v2.js
+  window.getPublicConfig = () => publicConfig;
 
   const mediaLabels = {
     continuous58: '58mm continuous',
@@ -252,13 +254,34 @@
     $('#saveSettings').addEventListener('click', save);
   }
 
+  function setupTabs() {
+    const tabs = $$('.tab-bar .tab');
+    const contents = $$('.tab-content');
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        tabs.forEach((t) => t.classList.toggle('active', t === tab));
+        contents.forEach((c) => c.classList.toggle('active', c.id === 'tab-' + target));
+        // Notify designer when its tab becomes visible
+        if (target === 'designer' && typeof window.onDesignerTabVisible === 'function') {
+          window.onDesignerTabVisible();
+        }
+      });
+    });
+  }
+
   window.addEventListener('DOMContentLoaded', async () => {
+    setupTabs();
     setupUploader();
     setupActions();
     setupSettings();
     await loadPublicConfig();
     $('#media').addEventListener('change', updatePreviews);
     observeOutputResize();
+    // Initialize designer if available
+    if (typeof window.initDesignerV2 === 'function') {
+      window.initDesignerV2();
+    }
   });
 
   async function updatePreviews() {

@@ -22,6 +22,7 @@ Ditherbooth is a small FastAPI service and single-page app that turns uploaded p
 
 - [Features](#features)
 - [Quick Start](#quick-start)
+- [Troubleshooting](#troubleshooting)
 - [Developer Settings and Test Mode](#developer-settings-and-test-mode)
 - [API Test with cURL](#api-test-with-curl)
 - [Media Presets](#media-presets)
@@ -47,11 +48,31 @@ Ditherbooth is a small FastAPI service and single-page app that turns uploaded p
 ### Prerequisites
 
 * Python 3.9+
-* [CUPS](https://www.cups.org/) with a **raw** queue named `Zebra_LP2844`
+* [CUPS](https://www.cups.org/) with a printer queue named `Zebra_LP2844`
 * Zebra LP2844 or LP2844‑Z printer connected via USB
 * `DITHERBOOTH_PRINTER` environment variable (optional) to override the CUPS queue name; defaults to `Zebra_LP2844`
 
-#### Create a raw queue
+#### Create a printer queue
+
+**macOS:**
+
+macOS no longer supports raw CUPS queues. Use the EPL2 driver instead:
+
+```bash
+# Find your printer's USB device (note the serial number)
+lpinfo -v | grep -i zebra
+
+# Create printer with EPL2 driver (update serial number to match yours)
+sudo lpadmin -p Zebra_LP2844 -E \
+  -v "usb://Zebra/LP2844?serial=YOUR_SERIAL_NUMBER" \
+  -m drv:///sample.drv/zebraep2.ppd
+
+# Enable and accept jobs
+cupsenable Zebra_LP2844
+cupsaccept Zebra_LP2844
+```
+
+**Linux:**
 
 ```bash
 sudo lpadmin -p Zebra_LP2844 -E -v usb://Zebra/LP2844 -m raw
@@ -68,14 +89,10 @@ lpstat -p Zebra_LP2844
 Print a simple label to confirm the queue works:
 
 ```bash
-python - <<'PY'
-from ditherbooth.printer.cups import spool_raw
-payload = (
-    'N\nq400\nQ200,24\nA50,50,0,3,1,1,N,"Hello"\nP1\n'
-)
-spool_raw('Zebra_LP2844', payload)
-PY
+echo -e "N\nq400\nQ200,24\nA50,50,0,3,1,1,N,\"Hello\"\nP1" | lpr -P Zebra_LP2844
 ```
+
+If successful, the printer should print a small label with "Hello" text.
 
 ### Installation
 
@@ -110,7 +127,68 @@ Find your IP:
 
 Open `http://<your-ip>:8000` on your phone. Use the gear icon (Dev Settings) to enable Test Mode so no printer is required.
 
-### Developer settings and test mode
+## Troubleshooting
+
+### Printer shows as paused or disabled
+
+If the printer appears paused in System Settings or `lpstat` shows it as disabled:
+
+```bash
+cupsenable Zebra_LP2844    # Enable the printer
+cupsaccept Zebra_LP2844    # Accept jobs
+lpstat -p Zebra_LP2844     # Verify status
+```
+
+### Print jobs are stuck in queue
+
+```bash
+cancel -a Zebra_LP2844     # Cancel all pending jobs
+lpstat -o                  # Check queue is empty
+```
+
+### "Unable to send data to printer" error
+
+This usually means the printer lost communication. Try:
+
+1. Check USB cable is connected
+2. Verify printer is powered on and shows a green ready light
+3. Check the printer appears in USB devices:
+   ```bash
+   lpinfo -v | grep -i zebra
+   ```
+4. If the device URI is wrong or shows `/dev/null`, reconfigure:
+   ```bash
+   # Find the correct USB device
+   lpinfo -v | grep -i zebra
+
+   # Update the printer (use your serial number)
+   sudo lpadmin -p Zebra_LP2844 -v "usb://Zebra/LP2844?serial=YOUR_SERIAL"
+
+   # Re-enable
+   cupsenable Zebra_LP2844
+   cupsaccept Zebra_LP2844
+   ```
+
+### Web interface returns "Printer error" (502)
+
+The app returns HTTP 502 when CUPS cannot communicate with the printer. Check:
+
+1. Printer status: `lpstat -p Zebra_LP2844`
+2. Recent CUPS errors: `tail -20 /var/log/cups/error_log`
+3. Follow steps above to enable printer and clear stuck jobs
+
+### Development without a printer
+
+Use test mode to develop without a physical printer:
+
+```bash
+curl -X PUT -H "X-Dev-Password: dev" -H "Content-Type: application/json" \
+  -d '{"test_mode": true}' http://localhost:8000/api/dev/settings
+```
+
+Or enable it through the web UI using the gear icon (Dev Settings) with password `dev`.
+
+## Developer settings and test mode
 
 The app exposes a small password-protected settings API to make the frontend configurable without exposing options to end users. These settings are persisted to a JSON file (`ditherbooth_config.json` by default) and are used both by the UI and the print endpoint.
 

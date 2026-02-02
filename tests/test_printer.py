@@ -1,5 +1,8 @@
+from unittest.mock import patch, mock_open, MagicMock
+
 from PIL import Image
 import pytest
+from ditherbooth.printer.cups import spool_raw
 from ditherbooth.printer.epl import img_to_epl_gw
 from ditherbooth.printer.zpl import img_to_zpl_gf
 
@@ -38,3 +41,28 @@ def test_printer_functions_require_1bit():
         img_to_epl_gw(img)
     with pytest.raises(ValueError):
         img_to_zpl_gf(img)
+
+
+def test_spool_raw_dev_path():
+    m = mock_open()
+    with patch("builtins.open", m):
+        spool_raw("/dev/usb/lp0", b"hello printer")
+    m.assert_called_once_with("/dev/usb/lp0", "wb")
+    m().write.assert_called_once_with(b"hello printer")
+
+
+def test_spool_raw_dev_path_with_str_payload():
+    m = mock_open()
+    with patch("builtins.open", m):
+        spool_raw("/dev/usb/lp0", "string payload")
+    m().write.assert_called_once_with(b"string payload")
+
+
+def test_spool_raw_lpr_path(tmp_path, monkeypatch):
+    with patch("subprocess.run") as mock_run:
+        spool_raw("TestPrinter", b"test data")
+        mock_run.assert_called_once()
+        args = mock_run.call_args[0][0]
+        assert args[0] == "lpr"
+        assert args[1] == "-P"
+        assert args[2] == "TestPrinter"
