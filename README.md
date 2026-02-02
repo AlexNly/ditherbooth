@@ -7,6 +7,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
+> **Work in progress** — Ditherbooth is functional and actively used, but docs, packaging, and polish are still in progress. Contributions and feedback welcome!
+
 A free, browser-based photo booth and label designer for any EPL/ZPL thermal printer.
 
 <p align="center">
