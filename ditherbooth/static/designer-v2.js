@@ -75,6 +75,10 @@
     if (config && config.default_media) {
       sel.value = config.default_media;
     }
+    const saved = localStorage.getItem('ditherbooth_designer_media');
+    if (saved && sel.querySelector(`option[value="${saved}"]`)) {
+      sel.value = saved;
+    }
   }
 
   function isTouchDevice() {
@@ -851,6 +855,7 @@
 
     $('#dFontSize').addEventListener('change', applyFontSize);
     $('#dMedia').addEventListener('change', () => {
+      localStorage.setItem('ditherbooth_designer_media', $('#dMedia').value);
       resizeCanvasToMedia();
       drawGrid();
     });
